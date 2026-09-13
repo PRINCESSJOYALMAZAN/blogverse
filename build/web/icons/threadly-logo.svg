@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Threadly logo">
+  <rect width="512" height="512" fill="#3a0b86"/>
+  <path
+    fill="url(#threadlyGradient)"
+    d="M212 120c16-6 34-10 52-10 11 0 16 8 10 17-22 33-38 66-48 101h44c26 0 47-21 47-47 0-24-19-43-43-43-25 0-43 15-55 44h-54c15-63 55-102 111-102 59 0 101 42 101 97 0 13-3 25-9 36l-38 72c-18 35-40 69-67 101-10 12-28 3-22-12l26-64H159c-46 0-78-32-78-78v-72c0-43 25-76 63-91 11-4 19 8 11 17-21 24-31 50-31 78v66c0 21 14 35 35 35h92c-5-32-2-63 10-94-24 7-42 26-52 59h-54c9-47 31-84 57-108Z"
+  />
+  <defs>
+    <linearGradient id="threadlyGradient" x1="101" x2="373" y1="111" y2="395" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#ee69ff"/>
+      <stop offset="0.55" stop-color="#ad43ff"/>
+      <stop offset="1" stop-color="#7c21e8"/>
+    </linearGradient>
+  </defs>
+</svg>

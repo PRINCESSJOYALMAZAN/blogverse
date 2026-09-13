@@ -1,0 +1,18 @@
+{
+  "name": "BlogVerse",
+  "short_name": "BlogVerse",
+  "start_url": ".",
+  "display": "standalone",
+  "background_color": "#3A0B86",
+  "theme_color": "#6258FF",
+  "description": "Create posts, join conversations, and connect with a growing community.",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "icons/blogverse-logo.png",
+      "sizes": "1024x1024",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
