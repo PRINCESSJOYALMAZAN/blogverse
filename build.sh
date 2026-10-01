@@ -12,9 +12,9 @@ export PATH="${FLUTTER_HOME}/bin:${PATH}"
 flutter config --enable-web
 flutter pub get
 
-: "${SUPABASE_URL:?Set SUPABASE_URL in Vercel Environment Variables}"
-: "${SUPABASE_PUBLISHABLE_KEY:?Set SUPABASE_PUBLISHABLE_KEY in Vercel Environment Variables}"
+SUPABASE_URL_VALUE="${SUPABASE_URL:-https://nfhasyisjgpaletmpvuq.supabase.co}"
+SUPABASE_PUBLISHABLE_KEY_VALUE="${SUPABASE_PUBLISHABLE_KEY:-sb_publishable_CvDOHCvXczV2f7zD1TpmRg_wmtyXoKJ}"
 
 flutter build web --release \
-  --dart-define="SUPABASE_URL=${SUPABASE_URL}" \
-  --dart-define="SUPABASE_PUBLISHABLE_KEY=${SUPABASE_PUBLISHABLE_KEY}"
+  --dart-define="SUPABASE_URL=${SUPABASE_URL_VALUE}" \
+  --dart-define="SUPABASE_PUBLISHABLE_KEY=${SUPABASE_PUBLISHABLE_KEY_VALUE}"
