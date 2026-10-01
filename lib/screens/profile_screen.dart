@@ -186,48 +186,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  void _showAboutEditDialog() {
-    final profileProvider = context.read<ProfileProvider>();
-    showDialog<void>(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: const Text('Edit About Me'),
-        content: TextField(
-          controller: _name,
-          autofocus: true,
-          textCapitalization: TextCapitalization.words,
-          decoration: const InputDecoration(
-            labelText: 'Display name',
-            hintText: 'Enter your name',
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(dialogContext).pop(),
-            child: const Text('Cancel'),
-          ),
-          FilledButton(
-            onPressed: () async {
-              Navigator.of(dialogContext).pop();
-              try {
-                await profileProvider.updateName(_name.text);
-                if (mounted) {
-                  setState(() => _profile = profileProvider.profile);
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('About Me updated')),
-                  );
-                }
-              } catch (error) {
-                _showError(error);
-              }
-            },
-            child: const Text('Save'),
-          ),
-        ],
-      ),
-    );
-  }
-
   @override
   void dispose() {
     _name.dispose();
@@ -310,9 +268,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                 displayName: displayName,
                                 postsFuture: _userPostsFuture,
                                 isOwnProfile: isOwnProfile,
-                                onEditAbout: isOwnProfile
-                                    ? _showAboutEditDialog
-                                    : null,
                               ),
                             ],
                           )
@@ -328,9 +283,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                   displayName: displayName,
                                   postsFuture: _userPostsFuture,
                                   isOwnProfile: isOwnProfile,
-                                  onEditAbout: isOwnProfile
-                                      ? _showAboutEditDialog
-                                      : null,
                                 ),
                               ),
                             ],
@@ -408,14 +360,12 @@ class _ProfileSideRail extends StatelessWidget {
     required this.displayName,
     required this.postsFuture,
     required this.isOwnProfile,
-    this.onEditAbout,
   });
 
   final AppProfile? profile;
   final String displayName;
   final Future<List<Post>>? postsFuture;
   final bool isOwnProfile;
-  final VoidCallback? onEditAbout;
 
   @override
   Widget build(BuildContext context) {
@@ -424,13 +374,6 @@ class _ProfileSideRail extends StatelessWidget {
         _SideCard(
           title: 'About Me',
           icon: Icons.person_outline_rounded,
-          action: isOwnProfile
-              ? TextButton.icon(
-                  onPressed: onEditAbout,
-                  icon: const Icon(Icons.edit_outlined, size: 14),
-                  label: const Text('Edit'),
-                )
-              : null,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
