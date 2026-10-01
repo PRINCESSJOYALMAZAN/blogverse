@@ -487,13 +487,11 @@ class _SideCard extends StatelessWidget {
     required this.title,
     required this.icon,
     required this.child,
-    this.action,
   });
 
   final String title;
   final IconData icon;
   final Widget child;
-  final Widget? action;
 
   @override
   Widget build(BuildContext context) {
@@ -522,7 +520,6 @@ class _SideCard extends StatelessWidget {
                   ),
                 ),
               ),
-              if (action != null) action!,
             ],
           ),
           const SizedBox(height: 14),
