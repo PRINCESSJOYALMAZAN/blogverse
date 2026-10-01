@@ -374,6 +374,13 @@ class _ProfileSideRail extends StatelessWidget {
         _SideCard(
           title: 'About Me',
           icon: Icons.person_outline_rounded,
+          action: isOwnProfile
+              ? TextButton.icon(
+                  onPressed: () {},
+                  icon: const Icon(Icons.edit_outlined, size: 14),
+                  label: const Text('Edit'),
+                )
+              : null,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -487,11 +494,13 @@ class _SideCard extends StatelessWidget {
     required this.title,
     required this.icon,
     required this.child,
+    this.action,
   });
 
   final String title;
   final IconData icon;
   final Widget child;
+  final Widget? action;
 
   @override
   Widget build(BuildContext context) {
@@ -520,6 +529,7 @@ class _SideCard extends StatelessWidget {
                   ),
                 ),
               ),
+              if (action != null) action!,
             ],
           ),
           const SizedBox(height: 14),

@@ -42,7 +42,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
     return AppShell(
       child: Container(
-        color: const Color(0xFFF5F8FD),
+        color: const Color(0xFFF8FAFC),
         child: RefreshIndicator(
           onRefresh: postsProvider.loadInitial,
           child: CustomScrollView(
