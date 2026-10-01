@@ -30,6 +30,14 @@ create table if not exists public.comments (
   created_at timestamptz not null default now()
 );
 
+create table if not exists public.follows (
+  follower_id uuid not null references public.profiles(id) on delete cascade,
+  following_id uuid not null references public.profiles(id) on delete cascade,
+  created_at timestamptz not null default now(),
+  primary key (follower_id, following_id),
+  constraint follows_no_self_follow check (follower_id <> following_id)
+);
+
 create or replace function public.handle_new_user()
 returns trigger
 language plpgsql
@@ -76,6 +84,7 @@ alter table public.comments
 alter table public.profiles enable row level security;
 alter table public.posts enable row level security;
 alter table public.comments enable row level security;
+alter table public.follows enable row level security;
 
 drop policy if exists "Profiles are public readable" on public.profiles;
 create policy "Profiles are public readable"
@@ -135,6 +144,21 @@ create policy "Comment owners can delete comments"
 on public.comments for delete
 using (auth.uid() = user_id);
 
+drop policy if exists "Follows are public readable" on public.follows;
+create policy "Follows are public readable"
+on public.follows for select
+using (true);
+
+drop policy if exists "Users can follow as themselves" on public.follows;
+create policy "Users can follow as themselves"
+on public.follows for insert
+with check (auth.uid() = follower_id and follower_id <> following_id);
+
+drop policy if exists "Users can unfollow as themselves" on public.follows;
+create policy "Users can unfollow as themselves"
+on public.follows for delete
+using (auth.uid() = follower_id);
+
 insert into storage.buckets (id, name, public)
 values ('forum-images', 'forum-images', true)
 on conflict (id) do update set public = true;
@@ -153,6 +177,7 @@ with check (
   and (
     name like ('posts/' || auth.uid()::text || '_%')
     or name like ('avatars/' || auth.uid()::text || '_%')
+    or name like ('covers/' || auth.uid()::text || '_%')
     or name like ('comments/' || auth.uid()::text || '_%')
   )
 );
@@ -165,6 +190,7 @@ using (
   and (
     name like ('posts/' || auth.uid()::text || '_%')
     or name like ('avatars/' || auth.uid()::text || '_%')
+    or name like ('covers/' || auth.uid()::text || '_%')
     or name like ('comments/' || auth.uid()::text || '_%')
   )
 )
@@ -173,6 +199,7 @@ with check (
   and (
     name like ('posts/' || auth.uid()::text || '_%')
     or name like ('avatars/' || auth.uid()::text || '_%')
+    or name like ('covers/' || auth.uid()::text || '_%')
     or name like ('comments/' || auth.uid()::text || '_%')
   )
 );
@@ -185,6 +212,7 @@ using (
   and (
     name like ('posts/' || auth.uid()::text || '_%')
     or name like ('avatars/' || auth.uid()::text || '_%')
+    or name like ('covers/' || auth.uid()::text || '_%')
     or name like ('comments/' || auth.uid()::text || '_%')
   )
 );
