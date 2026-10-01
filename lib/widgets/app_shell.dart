@@ -4,9 +4,10 @@ import 'package:provider/provider.dart';
 
 import '../models/app_profile.dart';
 import '../providers/auth_provider.dart';
+import '../providers/profile_provider.dart';
 import 'sidebar.dart';
 
-class AppShell extends StatelessWidget {
+class AppShell extends StatefulWidget {
   const AppShell({
     super.key,
     required this.child,
@@ -18,6 +19,13 @@ class AppShell extends StatelessWidget {
   final int selectedIndex;
   final AppProfile? profile;
 
+  @override
+  State<AppShell> createState() => _AppShellState();
+}
+
+class _AppShellState extends State<AppShell> {
+  String? _loadedUserId;
+
   void _go(BuildContext context, int index) {
     if (index == 0) context.go('/');
     if (index == 1) context.go('/new');
@@ -27,6 +35,22 @@ class AppShell extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final auth = context.watch<AuthStateProvider>();
+    final profileProvider = context.watch<ProfileProvider>();
+    final userId = auth.user?.id;
+
+    if (userId != null && _loadedUserId != userId) {
+      _loadedUserId = userId;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) context.read<ProfileProvider>().load();
+      });
+    }
+    if (userId == null && _loadedUserId != null) {
+      _loadedUserId = null;
+    }
+
+    // The sidebar is the signed-in user's persistent account area. It must
+    // never use the profile currently being viewed in the page content.
+    final shellProfile = profileProvider.profile;
 
     return LayoutBuilder(
       builder: (context, constraints) {
@@ -38,14 +62,14 @@ class AppShell extends StatelessWidget {
               if (wide)
                 Sidebar(
                   auth: auth,
-                  profile: profile,
-                  selectedIndex: selectedIndex,
+                  profile: shellProfile,
+                  selectedIndex: widget.selectedIndex,
                   onDestinationSelected: (i) => _go(context, i),
                 ),
               Expanded(
                 child: SafeArea(
                   left: false,
-                  child: child,
+                  child: widget.child,
                 ),
               ),
             ],
@@ -54,7 +78,7 @@ class AppShell extends StatelessWidget {
               ? null
               : AppBottomNav(
                   auth: auth,
-                  selectedIndex: selectedIndex,
+                  selectedIndex: widget.selectedIndex,
                   onTap: (i) => _go(context, i),
                 ),
         );

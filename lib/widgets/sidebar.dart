@@ -7,11 +7,9 @@ import '../providers/auth_provider.dart';
 import 'app_logo.dart';
 
 const _kSideBg = Color(0xFF0F172A);
-const _kSideBorder = Color(0xFF1E293B);
 const _kSideText = Color(0xFF94A3B8);
-const _kSideActive = Color(0xFFEEF2FF);
 const _kIndigo = Color(0xFF4F46E5);
-const _kIndigoLight = Color(0xFFA5B4FC);
+const _kViolet = Color(0xFF6D5DFB);
 
 class Sidebar extends StatelessWidget {
   const Sidebar({
@@ -37,70 +35,93 @@ class Sidebar extends StatelessWidget {
         : email.split('@').firstOrNull ?? 'Member';
 
     return Container(
-      width: 220,
-      color: _kSideBg,
-      child: SafeArea(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            const Padding(
-              padding: EdgeInsets.fromLTRB(20, 20, 20, 16),
-              child: AppLogo(iconSize: 32, fontSize: 16),
-            ),
-            Container(height: 1, color: _kSideBorder),
-            const SizedBox(height: 8),
-            _SideItem(
-              icon: Icons.home_outlined,
-              activeIcon: Icons.home_rounded,
-              label: 'Feed',
-              selected: selectedIndex == 0,
-              onTap: () => onDestinationSelected(0),
-            ),
-            _SideItem(
-              icon: Icons.edit_outlined,
-              activeIcon: Icons.edit_rounded,
-              label: 'Write',
-              selected: selectedIndex == 1,
-              onTap: () => auth.isLoggedIn
-                  ? onDestinationSelected(1)
-                  : context.go('/login'),
-            ),
-            _SideItem(
-              icon: Icons.person_outline_rounded,
-              activeIcon: Icons.person_rounded,
-              label: 'Profile',
-              selected: selectedIndex == 2,
-              onTap: () => auth.isLoggedIn
-                  ? onDestinationSelected(2)
-                  : context.go('/login'),
-            ),
-            const Spacer(),
-            Container(height: 1, color: _kSideBorder),
-            if (auth.isLoggedIn)
-              _UserCard(
-                displayName: displayName,
-                email: email,
-                avatarUrl: profile?.avatarUrl,
-              )
-            else
-              Padding(
-                padding: const EdgeInsets.all(16),
-                child: FilledButton.icon(
-                  onPressed: () => context.go('/login'),
-                  icon: const Icon(Icons.login_rounded, size: 16),
-                  label: const Text('Sign in'),
-                  style: FilledButton.styleFrom(
-                    backgroundColor: _kIndigo,
-                    foregroundColor: Colors.white,
-                    minimumSize: const Size(0, 40),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
+      width: 248,
+      decoration: const BoxDecoration(
+        color: _kSideBg,
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [Color(0xFF101B33), Color(0xFF07111F)],
+        ),
+      ),
+      child: Stack(
+        children: [
+          const Positioned(
+            left: -84,
+            bottom: -70,
+            child: _SideGlow(size: 250, color: Color(0xFF284B9A)),
+          ),
+          const Positioned(
+            right: -130,
+            bottom: 120,
+            child: _SideGlow(size: 220, color: Color(0xFF4F46E5)),
+          ),
+          SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(14, 18, 14, 14),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  const Padding(
+                    padding: EdgeInsets.fromLTRB(4, 0, 4, 18),
+                    child: Align(
+                      alignment: Alignment.centerLeft,
+                      child: AppLogo(iconSize: 42),
                     ),
                   ),
-                ),
+                  _SideItem(
+                    icon: Icons.home_outlined,
+                    activeIcon: Icons.home_rounded,
+                    label: 'Home',
+                    selected: selectedIndex == 0,
+                    onTap: () => onDestinationSelected(0),
+                  ),
+                  const SizedBox(height: 6),
+                  _SideItem(
+                    icon: Icons.edit_outlined,
+                    activeIcon: Icons.edit_rounded,
+                    label: 'Write',
+                    selected: selectedIndex == 1,
+                    onTap: () => auth.isLoggedIn
+                        ? onDestinationSelected(1)
+                        : context.go('/login'),
+                  ),
+                  const SizedBox(height: 6),
+                  _SideItem(
+                    icon: Icons.person_outline_rounded,
+                    activeIcon: Icons.person_rounded,
+                    label: 'Profile',
+                    selected: selectedIndex == 2,
+                    onTap: () => auth.isLoggedIn
+                        ? onDestinationSelected(2)
+                        : context.go('/login'),
+                  ),
+                  const Spacer(),
+                  if (auth.isLoggedIn)
+                    _UserCard(
+                      displayName: displayName,
+                      email: email,
+                      avatarUrl: profile?.avatarUrl,
+                    )
+                  else
+                    FilledButton.icon(
+                      onPressed: () => context.go('/login'),
+                      icon: const Icon(Icons.login_rounded, size: 16),
+                      label: const Text('Sign in'),
+                      style: FilledButton.styleFrom(
+                        backgroundColor: _kViolet,
+                        foregroundColor: Colors.white,
+                        minimumSize: const Size(0, 44),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                      ),
+                    ),
+                ],
               ),
-          ],
-        ),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -133,7 +154,7 @@ class AppBottomNav extends StatelessWidget {
               _BottomItem(
                 icon: Icons.home_outlined,
                 activeIcon: Icons.home_rounded,
-                label: 'Feed',
+                label: 'Home',
                 selected: selectedIndex == 0,
                 onTap: () => onTap(0),
               ),
@@ -172,81 +193,83 @@ class _UserCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.all(12),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: const Color(0xFF1E293B),
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: Row(
-              children: [
-                CircleAvatar(
-                  radius: 16,
-                  backgroundColor: _kIndigo,
-                  backgroundImage: avatarUrl == null || avatarUrl!.isEmpty
-                      ? null
-                      : NetworkImage(avatarUrl!),
-                  child: avatarUrl == null || avatarUrl!.isEmpty
-                      ? Text(
-                          displayName.characters.first.toUpperCase(),
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.w700,
-                            fontSize: 14,
-                          ),
-                        )
-                      : null,
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        displayName,
-                        overflow: TextOverflow.ellipsis,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Container(
+          padding: const EdgeInsets.all(13),
+          decoration: BoxDecoration(
+            color: Colors.white.withValues(alpha: .08),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: Colors.white.withValues(alpha: .08)),
+          ),
+          child: Row(
+            children: [
+              CircleAvatar(
+                radius: 18,
+                backgroundColor: _kViolet,
+                backgroundImage: avatarUrl == null || avatarUrl!.isEmpty
+                    ? null
+                    : NetworkImage(avatarUrl!),
+                child: avatarUrl == null || avatarUrl!.isEmpty
+                    ? Text(
+                        displayName.characters.first.toUpperCase(),
                         style: const TextStyle(
                           color: Colors.white,
-                          fontSize: 12,
-                          fontWeight: FontWeight.w700,
+                          fontWeight: FontWeight.w900,
+                          fontSize: 14,
                         ),
+                      )
+                    : null,
+              ),
+              const SizedBox(width: 11),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      displayName,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w900,
                       ),
-                      Text(
-                        email,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          color: _kSideText,
-                          fontSize: 10,
-                        ),
+                    ),
+                    Text(
+                      email,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        color: _kSideText,
+                        fontSize: 10,
+                        height: 1.4,
                       ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
-          const SizedBox(height: 8),
-          TextButton.icon(
-            onPressed: () async {
-              await context.read<AuthStateProvider>().logout();
-              if (context.mounted) context.go('/login');
-            },
-            icon: const Icon(Icons.logout_rounded, size: 14),
-            label: const Text('Sign out'),
-            style: TextButton.styleFrom(
-              foregroundColor: _kSideText,
-              textStyle:
-                  const TextStyle(fontSize: 13, fontWeight: FontWeight.w500),
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+        ),
+        const SizedBox(height: 10),
+        TextButton.icon(
+          onPressed: () async {
+            await context.read<AuthStateProvider>().logout();
+            if (context.mounted) context.go('/login');
+          },
+          icon: const Icon(Icons.logout_rounded, size: 15),
+          label: const Text('Sign out'),
+          style: TextButton.styleFrom(
+            foregroundColor: _kSideText,
+            alignment: Alignment.centerLeft,
+            textStyle: const TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w700,
             ),
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 }
@@ -268,47 +291,74 @@ class _SideItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-      child: Material(
-        color: selected ? _kIndigo.withValues(alpha: .15) : Colors.transparent,
-        borderRadius: BorderRadius.circular(8),
+    return Material(
+      color: Colors.transparent,
+      child: Ink(
+        decoration: BoxDecoration(
+          gradient: selected
+              ? const LinearGradient(
+                  colors: [Color(0xFF6D5DFB), Color(0xFF4F46E5)],
+                )
+              : null,
+          borderRadius: BorderRadius.circular(10),
+        ),
         child: InkWell(
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: BorderRadius.circular(10),
           onTap: onTap,
-          hoverColor: Colors.white.withValues(alpha: .05),
+          hoverColor: Colors.white.withValues(alpha: .06),
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 12),
             child: Row(
               children: [
                 Icon(
                   selected ? activeIcon : icon,
-                  size: 18,
-                  color: selected ? _kIndigoLight : _kSideText,
+                  size: 20,
+                  color: selected ? Colors.white : _kSideText,
                 ),
-                const SizedBox(width: 10),
-                Text(
-                  label,
-                  style: TextStyle(
-                    color: selected ? _kSideActive : _kSideText,
-                    fontSize: 14,
-                    fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    label,
+                    style: TextStyle(
+                      color: selected ? Colors.white : _kSideText,
+                      fontSize: 14,
+                      fontWeight: selected ? FontWeight.w900 : FontWeight.w700,
+                    ),
                   ),
                 ),
-                if (selected) ...[
-                  const Spacer(),
+                if (selected)
                   Container(
-                    width: 5,
-                    height: 5,
+                    width: 6,
+                    height: 6,
                     decoration: const BoxDecoration(
-                      color: _kIndigoLight,
+                      color: Colors.white,
                       shape: BoxShape.circle,
                     ),
                   ),
-                ],
               ],
             ),
           ),
+        ),
+      ),
+    );
+  }
+}
+
+class _SideGlow extends StatelessWidget {
+  const _SideGlow({required this.size, required this.color});
+
+  final double size;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return IgnorePointer(
+      child: Container(
+        width: size,
+        height: size,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          color: color.withValues(alpha: .18),
         ),
       ),
     );

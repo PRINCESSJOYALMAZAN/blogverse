@@ -9,9 +9,14 @@ import '../providers/post_provider.dart';
 import 'image_picker_grid.dart';
 
 class PostCard extends StatelessWidget {
-  const PostCard({super.key, required this.post});
+  const PostCard({
+    super.key,
+    required this.post,
+    this.maxWidth = 620,
+  });
 
   final Post post;
+  final double maxWidth;
 
   List<String> get _tags {
     final text = '${post.title} ${post.body}'.toLowerCase();
@@ -32,48 +37,68 @@ class PostCard extends StatelessWidget {
     final isOwner = auth.user?.id == post.userId;
     return Center(
       child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 620),
+        constraints: BoxConstraints(maxWidth: maxWidth),
         child: Card(
           margin: const EdgeInsets.only(bottom: 16),
           child: InkWell(
-            borderRadius: BorderRadius.circular(14),
+            borderRadius: BorderRadius.circular(12),
             onTap: () => context.go('/posts/${post.id}'),
             child: Padding(
-              padding: const EdgeInsets.all(18),
+              padding: const EdgeInsets.all(16),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Row(
                     children: [
-                      CircleAvatar(
-                        radius: 17,
-                        backgroundColor: const Color(0xFFE5B589),
-                        backgroundImage: post.authorAvatarUrl == null
-                            ? null
-                            : NetworkImage(post.authorAvatarUrl!),
-                        child: post.authorAvatarUrl == null
-                            ? const Icon(Icons.person_outline, size: 18)
-                            : null,
+                      InkWell(
+                        borderRadius: BorderRadius.circular(24),
+                        onTap: () => context.go('/users/${post.userId}'),
+                        child: CircleAvatar(
+                          radius: 20,
+                          backgroundColor: const Color(0xFF5B4DF7),
+                          backgroundImage: post.authorAvatarUrl == null
+                              ? null
+                              : NetworkImage(post.authorAvatarUrl!),
+                          child: post.authorAvatarUrl == null
+                              ? Text(
+                                  (post.authorName?.isNotEmpty == true
+                                          ? post.authorName!
+                                          : 'M')
+                                      .characters
+                                      .first
+                                      .toUpperCase(),
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.w900,
+                                  ),
+                                )
+                              : null,
+                        ),
                       ),
-                      const SizedBox(width: 10),
+                      const SizedBox(width: 12),
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text(
-                              post.authorName?.isNotEmpty == true
-                                  ? post.authorName!
-                                  : 'Forum member',
-                              style: const TextStyle(
-                                fontSize: 12,
-                                fontWeight: FontWeight.w900,
+                            InkWell(
+                              onTap: () => context.go('/users/${post.userId}'),
+                              child: Text(
+                                post.authorName?.isNotEmpty == true
+                                    ? post.authorName!
+                                    : 'Forum member',
+                                style: const TextStyle(
+                                  color: Color(0xFF1E2A44),
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w900,
+                                ),
                               ),
                             ),
                             Text(
-                              '@member - ${DateFormat.MMMd().add_jm().format(post.createdAt)}',
+                              DateFormat.MMMd().add_jm().format(post.createdAt),
                               style: const TextStyle(
                                 color: Color(0xFF8A93A8),
                                 fontSize: 11,
+                                fontWeight: FontWeight.w600,
                               ),
                             ),
                           ],
@@ -84,7 +109,9 @@ class PostCard extends StatelessWidget {
                           onSelected: (value) async {
                             if (value == 'edit') context.go('/edit/${post.id}');
                             if (value == 'delete') {
-                              await context.read<PostProvider>().deletePost(post);
+                              await context
+                                  .read<PostProvider>()
+                                  .deletePost(post);
                             }
                           },
                           itemBuilder: (_) => const [
@@ -100,10 +127,12 @@ class PostCard extends StatelessWidget {
                   const SizedBox(height: 14),
                   Text(
                     post.title,
-                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                          fontFamily: 'serif',
-                          fontWeight: FontWeight.w900,
-                        ),
+                    style: const TextStyle(
+                      color: Color(0xFF111827),
+                      fontSize: 18,
+                      fontWeight: FontWeight.w900,
+                      height: 1.25,
+                    ),
                   ),
                   const SizedBox(height: 8),
                   Wrap(
@@ -120,7 +149,8 @@ class PostCard extends StatelessWidget {
                     overflow: TextOverflow.ellipsis,
                     style: const TextStyle(
                       color: Color(0xFF43516A),
-                      height: 1.55,
+                      height: 1.5,
+                      fontSize: 13,
                     ),
                   ),
                   if (post.imageUrls.isNotEmpty) ...[
@@ -131,17 +161,16 @@ class PostCard extends StatelessWidget {
                     ),
                   ],
                   const SizedBox(height: 14),
-                  const Divider(height: 1),
-                  const SizedBox(height: 12),
                   Row(
                     children: [
-                      const Icon(
-                        Icons.chat_bubble_outline,
-                        size: 16,
-                        color: Color(0xFF9AA4B7),
+                      TextButton.icon(
+                        onPressed: () => context.go('/posts/${post.id}'),
+                        icon: const Icon(
+                          Icons.chat_bubble_outline_rounded,
+                          size: 16,
+                        ),
+                        label: const Text('Open discussion'),
                       ),
-                      const SizedBox(width: 5),
-                      const Text('Open discussion'),
                       const Spacer(),
                       TextButton(
                         onPressed: () => context.go('/posts/${post.id}'),

@@ -10,12 +10,12 @@ import 'screens/write_screen.dart';
 
 GoRouter createRouter(AuthStateProvider auth) {
   return GoRouter(
-    initialLocation: '/',
+    initialLocation: '/login',
     refreshListenable: auth,
     redirect: (context, state) {
       final privateRoute = state.matchedLocation.startsWith('/new') ||
           state.matchedLocation.startsWith('/edit') ||
-          state.matchedLocation.startsWith('/profile');
+          state.matchedLocation == '/profile';
       if (privateRoute && !auth.isLoggedIn) return '/login';
       if ((state.matchedLocation == '/login' ||
               state.matchedLocation == '/register') &&
@@ -60,6 +60,12 @@ GoRouter createRouter(AuthStateProvider auth) {
       GoRoute(
         path: '/profile',
         builder: (context, state) => const ProfileScreen(),
+      ),
+      GoRoute(
+        path: '/users/:id',
+        builder: (context, state) => ProfileScreen(
+          userId: state.pathParameters['id']!,
+        ),
       ),
     ],
   );

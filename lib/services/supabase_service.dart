@@ -44,20 +44,46 @@ class SupabaseService {
   }) async {
     final urls = <String>[];
     for (final file in files) {
-      final extension = file.name.split('.').last.toLowerCase();
+      final rawExtension = file.name.contains('.')
+          ? file.name.split('.').last.toLowerCase()
+          : 'jpg';
+      final extension = RegExp(r'^[a-z0-9]{1,5}$').hasMatch(rawExtension)
+          ? rawExtension
+          : 'jpg';
       final path = '$folder/${userId}_${_uuid.v4()}.$extension';
       final bytes = await file.readAsBytes();
+      if (bytes.isEmpty) {
+        throw ArgumentError(
+            'The selected image is empty or could not be read.');
+      }
       await client.storage.from(imageBucket).uploadBinary(
             path,
             bytes,
             fileOptions: FileOptions(
-              contentType: file.mimeType ?? 'image/$extension',
+              contentType: file.mimeType?.startsWith('image/') == true
+                  ? file.mimeType
+                  : _contentTypeFor(extension),
               upsert: false,
             ),
           );
       urls.add(client.storage.from(imageBucket).getPublicUrl(path));
     }
     return urls;
+  }
+
+  static String _contentTypeFor(String extension) {
+    switch (extension) {
+      case 'png':
+        return 'image/png';
+      case 'webp':
+        return 'image/webp';
+      case 'gif':
+        return 'image/gif';
+      case 'heic':
+        return 'image/heic';
+      default:
+        return 'image/jpeg';
+    }
   }
 
   static Future<void> deleteByPublicUrls(List<String> urls) async {

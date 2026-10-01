@@ -63,7 +63,9 @@ class _AuthScreenState extends State<AuthScreen> {
     if (!_formKey.currentState!.validate()) return;
     setState(() => _busy = true);
     try {
-      await context.read<AuthStateProvider>().login(_email.text, _password.text);
+      await context
+          .read<AuthStateProvider>()
+          .login(_email.text, _password.text);
       if (mounted) context.go('/');
     } on InvalidCredentialsException {
       _snack('Invalid email or password.', error: true);
@@ -115,7 +117,17 @@ class _AuthScreenState extends State<AuthScreen> {
     if (s.contains('already registered')) {
       return 'An account with this email already exists.';
     }
-    return e.toString().replaceFirst('AuthException(message: ', '').replaceFirst(')', '');
+    if (s.contains('failed to fetch') ||
+        s.contains('retryablefetchexception') ||
+        s.contains('clientexception') ||
+        s.contains('socketexception') ||
+        s.contains('connection')) {
+      return 'Cannot connect to Supabase. Check your internet connection and verify the SUPABASE_URL and publishable key in run-local.ps1.';
+    }
+    return e
+        .toString()
+        .replaceFirst('AuthException(message: ', '')
+        .replaceFirst(')', '');
   }
 
   // Build
@@ -158,12 +170,15 @@ class _WideLayout extends StatelessWidget {
                 Positioned(
                   top: -80,
                   left: -80,
-                  child: _Blob(color: _kIndigo.withValues(alpha: .18), size: 400),
+                  child:
+                      _Blob(color: _kIndigo.withValues(alpha: .18), size: 400),
                 ),
                 Positioned(
                   bottom: -100,
                   right: -60,
-                  child: _Blob(color: const Color(0xFF7C3AED).withValues(alpha: .15), size: 350),
+                  child: _Blob(
+                      color: const Color(0xFF7C3AED).withValues(alpha: .15),
+                      size: 350),
                 ),
                 // Content
                 const Padding(
@@ -190,8 +205,8 @@ class _WideLayout extends StatelessWidget {
             color: Colors.white,
             child: Center(
               child: SingleChildScrollView(
-                padding: const EdgeInsets.symmetric(
-                    horizontal: 48, vertical: 40),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 48, vertical: 40),
                 child: ConstrainedBox(
                   constraints: const BoxConstraints(maxWidth: 380),
                   child: _AuthFormCard(state: state),
@@ -245,7 +260,7 @@ class _LogoBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const AppLogo(iconSize: 36, fontSize: 20);
+    return const AppLogo(iconSize: 36);
   }
 }
 
@@ -279,9 +294,11 @@ class _BrandCopy extends StatelessWidget {
         SizedBox(height: 28),
         _FeatureRow(icon: Icons.bolt_rounded, label: 'Fast & responsive'),
         SizedBox(height: 10),
-        _FeatureRow(icon: Icons.lock_outline_rounded, label: 'Secure by default'),
+        _FeatureRow(
+            icon: Icons.lock_outline_rounded, label: 'Secure by default'),
         SizedBox(height: 10),
-        _FeatureRow(icon: Icons.photo_library_outlined, label: 'Multi-image support'),
+        _FeatureRow(
+            icon: Icons.photo_library_outlined, label: 'Multi-image support'),
       ],
     );
   }
@@ -305,8 +322,7 @@ class _FeatureRow extends StatelessWidget {
           child: Icon(icon, color: const Color(0xFFA5B4FC), size: 14),
         ),
         const SizedBox(width: 10),
-        Text(label,
-            style: const TextStyle(color: _kSlate400, fontSize: 13)),
+        Text(label, style: const TextStyle(color: _kSlate400, fontSize: 13)),
       ],
     );
   }
@@ -378,7 +394,8 @@ class _AuthFormCardState extends State<_AuthFormCard> {
   bool get _hasEightCharacters => s._password.text.length >= 8;
   bool get _hasNumber => RegExp(r'\d').hasMatch(s._password.text);
   bool get _hasSpecialCharacter =>
-      RegExp(r'[!@#$%^&*(),.?":{}|<>_\-+=\[\]\\;/`~]').hasMatch(s._password.text);
+      RegExp(r'[!@#$%^&*(),.?":{}|<>_\-+=\[\]\\;/`~]')
+          .hasMatch(s._password.text);
 
   @override
   void initState() {
@@ -405,8 +422,7 @@ class _AuthFormCardState extends State<_AuthFormCard> {
     if (!RegExp(r'\d').hasMatch(password)) {
       return 'Password must include at least 1 number';
     }
-    if (!RegExp(r'[!@#$%^&*(),.?":{}|<>_\-+=\[\]\\;/`~]')
-        .hasMatch(password)) {
+    if (!RegExp(r'[!@#$%^&*(),.?":{}|<>_\-+=\[\]\\;/`~]').hasMatch(password)) {
       return 'Password must include at least 1 special character';
     }
     return null;
@@ -530,8 +546,8 @@ class _AuthFormCardState extends State<_AuthFormCard> {
             Expanded(child: Divider()),
             Padding(
               padding: EdgeInsets.symmetric(horizontal: 12),
-              child: Text('or',
-                  style: TextStyle(color: _kSlate400, fontSize: 13)),
+              child:
+                  Text('or', style: TextStyle(color: _kSlate400, fontSize: 13)),
             ),
             Expanded(child: Divider()),
           ]),
@@ -570,7 +586,6 @@ class _AuthFormCardState extends State<_AuthFormCard> {
     );
   }
 }
-
 
 class _PasswordChecklist extends StatelessWidget {
   const _PasswordChecklist({
@@ -639,7 +654,6 @@ class _PasswordRule extends StatelessWidget {
     );
   }
 }
-
 
 // Tailwind-styled text field
 
@@ -726,4 +740,3 @@ class _TwField extends StatelessWidget {
     );
   }
 }
-

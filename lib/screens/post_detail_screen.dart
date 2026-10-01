@@ -107,9 +107,12 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
                           ],
                         ],
                       ),
-                      Text(
-                        '${post.authorName ?? 'Forum member'} - ${DateFormat.yMMMd().add_jm().format(post.createdAt)}',
-                        style: Theme.of(context).textTheme.bodySmall,
+                      InkWell(
+                        onTap: () => context.go('/users/${post.userId}'),
+                        child: Text(
+                          '${post.authorName ?? 'Forum member'} - ${DateFormat.yMMMd().add_jm().format(post.createdAt)}',
+                          style: Theme.of(context).textTheme.bodySmall,
+                        ),
                       ),
                       const SizedBox(height: 16),
                       Text(post.body),
@@ -265,7 +268,17 @@ class _CommentEditorState extends State<CommentEditor> {
   }
 
   Future<void> _pickImages() async {
-    final images = await _picker.pickMultiImage(imageQuality: 82);
+    List<XFile> images;
+    try {
+      images = await _picker.pickMultiImage(imageQuality: 100);
+    } catch (error) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Could not select images: $error')),
+        );
+      }
+      return;
+    }
     if (!mounted) return;
     setState(() => _newImages.addAll(images));
   }

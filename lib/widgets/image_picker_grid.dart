@@ -63,14 +63,155 @@ class ImageStrip extends StatelessWidget {
         scrollDirection: Axis.horizontal,
         itemCount: urls.length,
         separatorBuilder: (_, __) => const SizedBox(width: 10),
-        itemBuilder: (context, index) => ClipRRect(
-          borderRadius: BorderRadius.circular(8),
-          child: AspectRatio(
-            aspectRatio: 1.25,
-            child: _NetworkImageFallback(url: urls[index]),
+        itemBuilder: (context, index) => GestureDetector(
+          onTap: () => _showImageViewer(context, urls, index),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(8),
+            child: AspectRatio(
+              aspectRatio: 1.25,
+              child: _NetworkImageFallback(url: urls[index]),
+            ),
           ),
         ),
       ),
+    );
+  }
+}
+
+void _showImageViewer(
+    BuildContext context, List<String> urls, int initialIndex) {
+  showDialog<void>(
+    context: context,
+    builder: (context) => Dialog(
+      backgroundColor: Colors.black,
+      insetPadding: const EdgeInsets.all(16),
+      child: SizedBox(
+        height: MediaQuery.sizeOf(context).height * .78,
+        child: Stack(
+          children: [
+            _ImageViewerPages(urls: urls, initialIndex: initialIndex),
+            Positioned(
+              top: 8,
+              right: 8,
+              child: IconButton.filled(
+                tooltip: 'Close image',
+                onPressed: () => Navigator.of(context).pop(),
+                icon: const Icon(Icons.close),
+              ),
+            ),
+          ],
+        ),
+      ),
+    ),
+  );
+}
+
+class _ImageViewerPages extends StatefulWidget {
+  const _ImageViewerPages({required this.urls, required this.initialIndex});
+
+  final List<String> urls;
+  final int initialIndex;
+
+  @override
+  State<_ImageViewerPages> createState() => _ImageViewerPagesState();
+}
+
+class _ImageViewerPagesState extends State<_ImageViewerPages> {
+  late final PageController _controller;
+  late int _index;
+
+  @override
+  void initState() {
+    super.initState();
+    _index = widget.initialIndex;
+    _controller = PageController(initialPage: widget.initialIndex);
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  void _move(int delta) {
+    final next = (_index + delta).clamp(0, widget.urls.length - 1);
+    if (next == _index) return;
+    _controller.animateToPage(
+      next,
+      duration: const Duration(milliseconds: 220),
+      curve: Curves.easeOut,
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Stack(
+      children: [
+        PageView.builder(
+          controller: _controller,
+          onPageChanged: (index) => setState(() => _index = index),
+          itemCount: widget.urls.length,
+          itemBuilder: (_, index) => InteractiveViewer(
+            child: Image.network(
+              widget.urls[index],
+              fit: BoxFit.contain,
+              errorBuilder: (_, __, ___) => const Center(
+                child: Icon(Icons.broken_image_outlined,
+                    color: Colors.white, size: 48),
+              ),
+            ),
+          ),
+        ),
+        if (widget.urls.length > 1) ...[
+          Positioned(
+            left: 12,
+            top: 0,
+            bottom: 0,
+            child: Center(
+              child: IconButton.filled(
+                tooltip: 'Previous image',
+                onPressed: _index == 0 ? null : () => _move(-1),
+                icon: const Icon(Icons.chevron_left),
+              ),
+            ),
+          ),
+          Positioned(
+            right: 12,
+            top: 0,
+            bottom: 0,
+            child: Center(
+              child: IconButton.filled(
+                tooltip: 'Next image',
+                onPressed: _index == widget.urls.length - 1
+                    ? null
+                    : () => _move(1),
+                icon: const Icon(Icons.chevron_right),
+              ),
+            ),
+          ),
+          Positioned(
+            bottom: 12,
+            left: 0,
+            right: 0,
+            child: Center(
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  color: Colors.black.withValues(alpha: .65),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Padding(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  child: Text(
+                    '${_index + 1} / ${widget.urls.length}',
+                    style: const TextStyle(color: Colors.white),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ],
     );
   }
 }

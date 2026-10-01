@@ -16,7 +16,9 @@ class AuthStateProvider extends ChangeNotifier {
 
   bool get isLoggedIn => user != null;
 
-  void bootstrap() {
+  Future<void> bootstrap() async {
+    // Keep the Supabase session so storage/database requests run as the
+    // authenticated user after a refresh or app restart.
     user = SupabaseService.client.auth.currentUser;
     loading = false;
     _subscription =
