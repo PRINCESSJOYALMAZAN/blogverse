@@ -200,20 +200,27 @@ class _CommentTileState extends State<CommentTile> {
                 children: [
                   Row(
                     children: [
-                      CircleAvatar(
-                        radius: 18,
-                        backgroundImage: widget.comment.authorAvatarUrl == null
-                            ? null
-                            : NetworkImage(widget.comment.authorAvatarUrl!),
-                        child: widget.comment.authorAvatarUrl == null
-                            ? const Icon(Icons.person_outline, size: 18)
-                            : null,
+                      InkWell(
+                        borderRadius: BorderRadius.circular(22),
+                        onTap: () => context.go('/users/${widget.comment.userId}'),
+                        child: CircleAvatar(
+                          radius: 18,
+                          backgroundImage: widget.comment.authorAvatarUrl == null
+                              ? null
+                              : NetworkImage(widget.comment.authorAvatarUrl!),
+                          child: widget.comment.authorAvatarUrl == null
+                              ? const Icon(Icons.person_outline, size: 18)
+                              : null,
+                        ),
                       ),
                       const SizedBox(width: 10),
                       Expanded(
-                        child: Text(
-                          '${widget.comment.authorName ?? 'Member'} - ${DateFormat.MMMd().add_jm().format(widget.comment.createdAt)}',
-                          style: Theme.of(context).textTheme.bodySmall,
+                        child: InkWell(
+                          onTap: () => context.go('/users/${widget.comment.userId}'),
+                          child: Text(
+                            '${widget.comment.authorName ?? 'Member'} - ${DateFormat.MMMd().add_jm().format(widget.comment.createdAt)}',
+                            style: Theme.of(context).textTheme.bodySmall,
+                          ),
                         ),
                       ),
                       if (isOwner) ...[

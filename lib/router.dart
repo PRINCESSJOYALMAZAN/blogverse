@@ -1,7 +1,7 @@
 import 'package:go_router/go_router.dart';
 
 import 'providers/auth_provider.dart';
-import 'screens/feed_screen.dart';
+import 'screens/home_screen.dart';
 import 'screens/login_screen.dart';
 import 'screens/post_detail_screen.dart';
 import 'screens/profile_screen.dart';
@@ -27,7 +27,7 @@ GoRouter createRouter(AuthStateProvider auth) {
     routes: [
       GoRoute(
         path: '/',
-        builder: (context, state) => const FeedScreen(),
+        builder: (context, state) => const HomeScreen(),
       ),
       GoRoute(
         path: '/login',
