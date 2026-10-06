@@ -12,7 +12,12 @@ import '../providers/post_provider.dart';
 import '../providers/profile_provider.dart';
 import '../widgets/app_shell.dart';
 
-const _kIndigo = Color(0xFF4F46E5);
+// This screen intentionally uses a few inline responsive widgets for the
+// compact profile dashboard layout.
+// ignore_for_file: prefer_const_constructors
+
+// Shared BlogVerse brand purple used by Home, Write, Profile, and navigation.
+const _kIndigo = Color(0xFF5B4DF7);
 const _kCyan = Color(0xFF0891B2);
 const _kEmerald = Color(0xFF059669);
 const _kInk = Color(0xFF0F172A);
@@ -290,7 +295,97 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context) => _buildModernProfile(context);
+
+  Widget _buildModernProfile(BuildContext context) {
+    final auth = context.watch<AuthStateProvider>();
+    final profile = _profile;
+    final isOwnProfile = widget.userId == null || widget.userId == auth.user?.id;
+    final email = profile?.email ?? auth.user?.email ?? '';
+    final displayName = profile?.name?.trim().isNotEmpty == true
+        ? profile!.name!.trim()
+        : email.contains('@')
+            ? email.split('@').first
+            : 'Member';
+    final compact = MediaQuery.sizeOf(context).width < 760;
+
+    return AppShell(
+      selectedIndex: 2,
+      child: Container(
+        color: const Color(0xFFF8FAFC),
+        child: ListView(
+          padding: EdgeInsets.fromLTRB(compact ? 14 : 28, 0, compact ? 14 : 28, 40),
+          children: [
+            _ModernTopBar(
+              displayName: displayName,
+              avatarUrl: profile?.avatarUrl,
+            ),
+            Center(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 1180),
+                child: Column(
+                  children: [
+                    _ModernProfileBanner(
+                      displayName: displayName,
+                      email: email,
+                      avatarUrl: profile?.avatarUrl,
+                    ),
+                    const SizedBox(height: 12),
+                    if (compact)
+                      _ModernMobileProfileMenu(
+                        onProfile: () {},
+                        onLogout: isOwnProfile ? _signOut : null,
+                      )
+                    else
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          SizedBox(
+                            width: 180,
+                            child: _ModernProfileMenu(
+                              onProfile: () {},
+                              onLogout: isOwnProfile ? _signOut : null,
+                            ),
+                          ),
+                          const SizedBox(width: 14),
+                          Expanded(
+                            child: _ModernProfileContent(
+                              displayName: displayName,
+                              email: email,
+                              profile: profile,
+                              postsFuture: _userPostsFuture,
+                              canEdit: isOwnProfile,
+                              onEdit: _showAboutEditDialog,
+                              onDelete: _deleteAccount,
+                            ),
+                          ),
+                        ],
+                      ),
+                    if (compact) ...[
+                      const SizedBox(height: 12),
+                      _ModernProfileContent(
+                        displayName: displayName,
+                        email: email,
+                        profile: profile,
+                        postsFuture: _userPostsFuture,
+                        canEdit: isOwnProfile,
+                        onEdit: _showAboutEditDialog,
+                        onDelete: _deleteAccount,
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // Kept as a fallback reference while the modern profile layout is active.
+  // ignore: unused_element
+  Widget _legacyBuild(BuildContext context) {
     final auth = context.watch<AuthStateProvider>();
     final profile = _profile;
     final isOwnProfile =
@@ -427,6 +522,319 @@ class _ProfileScreenState extends State<ProfileScreen> {
             );
           },
         ),
+      ),
+    );
+  }
+}
+
+class _ModernTopBar extends StatelessWidget {
+  const _ModernTopBar({required this.displayName, this.avatarUrl});
+
+  final String displayName;
+  final String? avatarUrl;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(0, 12, 0, 12),
+      child: Row(
+        children: [
+          const Expanded(
+            child: Text(
+              'BLOGVERSE',
+              style: TextStyle(
+                color: _kInk,
+                fontSize: 16,
+                fontWeight: FontWeight.w900,
+                letterSpacing: .8,
+              ),
+            ),
+          ),
+          SizedBox(
+            width: 280,
+            child: TextField(
+              decoration: InputDecoration(
+                hintText: 'Search posts, users, or topics...',
+                prefixIcon: const Icon(Icons.search_rounded, size: 18),
+                filled: true,
+                fillColor: Colors.white,
+                isDense: true,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(10),
+                  borderSide: const BorderSide(color: _kSlate200),
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(width: 12),
+          GestureDetector(
+            onTap: () => context.go('/profile'),
+            child: CircleAvatar(
+              radius: 18,
+              backgroundImage: avatarUrl == null ? null : NetworkImage(avatarUrl!),
+              child: avatarUrl == null
+                  ? Text(displayName.characters.first.toUpperCase())
+                  : null,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ModernProfileBanner extends StatelessWidget {
+  const _ModernProfileBanner({
+    required this.displayName,
+    required this.email,
+    this.avatarUrl,
+  });
+
+  final String displayName;
+  final String email;
+  final String? avatarUrl;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: 150,
+      padding: const EdgeInsets.fromLTRB(22, 18, 22, 18),
+      alignment: Alignment.bottomLeft,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(10),
+        gradient: const LinearGradient(
+          colors: [Color(0xFF132B60), Color(0xFF355AB4), Color(0xFF1A2345)],
+        ),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.end,
+        children: [
+          GestureDetector(
+            onTap: avatarUrl == null
+                ? null
+                : () => _showImagePreview(context, avatarUrl!, 'Profile photo'),
+            child: CircleAvatar(
+              radius: 34,
+              backgroundColor: _kIndigo,
+              backgroundImage: avatarUrl == null ? null : NetworkImage(avatarUrl!),
+              child: avatarUrl == null
+                  ? Text(
+                      displayName.characters.first.toUpperCase(),
+                      style: const TextStyle(color: Colors.white, fontSize: 25),
+                    )
+                  : null,
+            ),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(displayName, style: const TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.w900)),
+                Text('@${displayName.toLowerCase().replaceAll(' ', '')}', style: TextStyle(color: Colors.white.withValues(alpha: .8))),
+                const SizedBox(height: 4),
+                Text('IT Student  •  Developer  •  Lifelong Learner', style: TextStyle(color: Colors.white.withValues(alpha: .82), fontSize: 11)),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ModernProfileMenu extends StatelessWidget {
+  const _ModernProfileMenu({required this.onProfile, this.onLogout});
+
+  final VoidCallback onProfile;
+  final VoidCallback? onLogout;
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      margin: EdgeInsets.zero,
+      child: Column(
+        children: [
+          _ModernMenuItem(icon: Icons.person_outline, label: 'Profile', selected: true, onTap: onProfile),
+          const _ModernMenuItem(icon: Icons.article_outlined, label: 'Posts'),
+          const _ModernMenuItem(icon: Icons.bookmark_border, label: 'Saved'),
+          const _ModernMenuItem(icon: Icons.settings_outlined, label: 'Settings'),
+          if (onLogout != null) ...[
+            const Divider(height: 12),
+            _ModernMenuItem(icon: Icons.logout_rounded, label: 'Sign out', onTap: onLogout),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _ModernMobileProfileMenu extends StatelessWidget {
+  const _ModernMobileProfileMenu({required this.onProfile, this.onLogout});
+
+  final VoidCallback onProfile;
+  final VoidCallback? onLogout;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Expanded(child: OutlinedButton.icon(onPressed: onProfile, icon: const Icon(Icons.person_outline), label: const Text('Profile'))),
+        if (onLogout != null) ...[
+          const SizedBox(width: 8),
+          Expanded(child: OutlinedButton.icon(onPressed: onLogout, icon: const Icon(Icons.logout_rounded), label: const Text('Sign out'))),
+        ],
+      ],
+    );
+  }
+}
+
+class _ModernMenuItem extends StatelessWidget {
+  const _ModernMenuItem({required this.icon, required this.label, this.selected = false, this.onTap});
+
+  final IconData icon;
+  final String label;
+  final bool selected;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return ListTile(
+      dense: true,
+      selected: selected,
+      selectedTileColor: const Color(0xFFEFF0FF),
+      leading: Icon(icon, size: 17, color: selected ? _kIndigo : _kSlate500),
+      title: Text(label, style: TextStyle(color: selected ? _kIndigo : _kSlate700, fontSize: 12, fontWeight: FontWeight.w800)),
+      onTap: onTap,
+    );
+  }
+}
+
+class _ModernProfileContent extends StatelessWidget {
+  const _ModernProfileContent({
+    required this.displayName,
+    required this.email,
+    required this.profile,
+    required this.postsFuture,
+    required this.canEdit,
+    required this.onEdit,
+    required this.onDelete,
+  });
+
+  final String displayName;
+  final String email;
+  final AppProfile? profile;
+  final Future<List<Post>>? postsFuture;
+  final bool canEdit;
+  final VoidCallback onEdit;
+  final VoidCallback onDelete;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        _ModernSection(
+          title: 'About Me',
+          actions: canEdit
+              ? Row(
+                  children: [
+                    TextButton.icon(onPressed: onEdit, icon: const Icon(Icons.edit_outlined, size: 14), label: const Text('Edit')),
+                    TextButton.icon(onPressed: onDelete, style: TextButton.styleFrom(foregroundColor: _kRed), icon: const Icon(Icons.delete_outline, size: 14), label: const Text('Delete')),
+                  ],
+                )
+              : null,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('Hi! I am $displayName, an IT student who loves coding, building systems, and exploring new technologies.', style: const TextStyle(color: _kSlate700, fontSize: 12, height: 1.45)),
+              const SizedBox(height: 12),
+              Wrap(spacing: 14, runSpacing: 8, children: const [
+                _AboutLine(icon: Icons.code_rounded, label: 'BS Information Systems'),
+                _AboutLine(icon: Icons.location_on_outlined, label: 'Philippines'),
+                _AboutLine(icon: Icons.calendar_today_outlined, label: 'Joined 2025'),
+              ]),
+            ],
+          ),
+        ),
+        const SizedBox(height: 12),
+        const _ModernSection(
+          title: 'Skills',
+          child: Wrap(spacing: 8, runSpacing: 8, children: [
+            _SkillPill('Web Development'), _SkillPill('Mobile Development'), _SkillPill('Database Management'), _SkillPill('UI/UX Design'), _SkillPill('Problem Solving'), _SkillPill('Teamwork'),
+          ]),
+        ),
+        const SizedBox(height: 12),
+        _ModernSection(
+          title: 'Recent Posts',
+          action: TextButton(onPressed: () {}, child: const Text('View All →')),
+          child: FutureBuilder<List<Post>>(
+            future: postsFuture,
+            builder: (context, snapshot) {
+              final posts = snapshot.data ?? const <Post>[];
+              if (posts.isEmpty) return const Text('No posts yet.', style: TextStyle(color: _kSlate500));
+              return Column(children: [for (final post in posts.take(4)) _ModernPostRow(post: post)]);
+            },
+          ),
+        ),
+        if (canEdit) ...[
+          const SizedBox(height: 12),
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton.icon(
+              onPressed: onDelete,
+              style: OutlinedButton.styleFrom(foregroundColor: _kRed, side: BorderSide(color: _kRed.withValues(alpha: .35))),
+              icon: const Icon(Icons.delete_forever_outlined, size: 16),
+              label: const Text('Delete Account'),
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+}
+
+class _ModernSection extends StatelessWidget {
+  const _ModernSection({required this.title, required this.child, this.action, this.actions});
+
+  final String title;
+  final Widget child;
+  final Widget? action;
+  final Widget? actions;
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      margin: EdgeInsets.zero,
+      child: Padding(
+        padding: const EdgeInsets.all(14),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Row(children: [Expanded(child: Text(title, style: const TextStyle(color: _kInk, fontSize: 14, fontWeight: FontWeight.w900))), if (actions != null) actions!, if (action != null) action!]),
+          const SizedBox(height: 10),
+          child,
+        ]),
+      ),
+    );
+  }
+}
+
+class _ModernPostRow extends StatelessWidget {
+  const _ModernPostRow({required this.post});
+
+  final Post post;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: () => context.go('/posts/${post.id}'),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 7),
+        child: Row(children: [
+          ClipRRect(borderRadius: BorderRadius.circular(6), child: SizedBox(width: 48, height: 36, child: post.imageUrls.isEmpty ? const ColoredBox(color: _kSlate100) : Image.network(post.imageUrls.first, fit: BoxFit.cover))),
+          const SizedBox(width: 10),
+          Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(post.title, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: _kInk, fontSize: 11, fontWeight: FontWeight.w900)), Text(post.body, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: _kSlate500, fontSize: 10)), Text(DateFormat.MMMd().format(post.createdAt), style: const TextStyle(color: _kSlate400, fontSize: 9))])),
+          const Icon(Icons.chevron_right, color: _kSlate400, size: 18),
+        ]),
       ),
     );
   }

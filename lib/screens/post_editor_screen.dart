@@ -504,7 +504,7 @@ InputDecoration _fieldDecoration({
         top: Radius.circular(attachedTop ? 0 : 10),
         bottom: const Radius.circular(10),
       ),
-      borderSide: const BorderSide(color: Color(0xFF6D5DFB), width: 1.4),
+      borderSide: const BorderSide(color: Color(0xFF5B4DF7), width: 1.4),
     ),
   );
 }
@@ -798,9 +798,9 @@ class _TagChip extends StatelessWidget {
         backgroundColor:
             selected ? const Color(0xFFEEF2FF) : Colors.transparent,
         foregroundColor:
-            selected ? const Color(0xFF4F46E5) : const Color(0xFF7D879D),
+            selected ? const Color(0xFF5B4DF7) : const Color(0xFF7D879D),
         side: BorderSide(
-          color: selected ? const Color(0xFF4F46E5) : const Color(0xFFDBE2ED),
+          color: selected ? const Color(0xFF5B4DF7) : const Color(0xFFDBE2ED),
         ),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(999)),
         textStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700),

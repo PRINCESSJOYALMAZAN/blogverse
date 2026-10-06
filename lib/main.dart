@@ -119,8 +119,8 @@ class _ForumlyAppState extends State<ForumlyApp> {
             theme: ThemeData(
               fontFamily: 'Roboto',
               colorScheme: ColorScheme.fromSeed(
-                seedColor: const Color(0xFF4F46E5),
-                primary: const Color(0xFF4F46E5),
+                seedColor: const Color(0xFF5B4DF7),
+                primary: const Color(0xFF5B4DF7),
                 secondary: const Color(0xFF0891B2),
                 tertiary: const Color(0xFF7C3AED),
                 surface: Colors.white,
@@ -149,7 +149,7 @@ class _ForumlyAppState extends State<ForumlyApp> {
                 focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(8),
                   borderSide:
-                      const BorderSide(color: Color(0xFF4F46E5), width: 2),
+                      const BorderSide(color: Color(0xFF5B4DF7), width: 2),
                 ),
                 errorBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(8),
@@ -176,7 +176,7 @@ class _ForumlyAppState extends State<ForumlyApp> {
               ),
               filledButtonTheme: FilledButtonThemeData(
                 style: FilledButton.styleFrom(
-                  backgroundColor: const Color(0xFF4F46E5),
+                  backgroundColor: const Color(0xFF5B4DF7),
                   foregroundColor: Colors.white,
                   minimumSize: const Size(0, 44),
                   shape: RoundedRectangleBorder(
@@ -205,7 +205,7 @@ class _ForumlyAppState extends State<ForumlyApp> {
               ),
               textButtonTheme: TextButtonThemeData(
                 style: TextButton.styleFrom(
-                  foregroundColor: const Color(0xFF4F46E5),
+                  foregroundColor: const Color(0xFF5B4DF7),
                   textStyle: const TextStyle(
                     fontWeight: FontWeight.w600,
                     fontSize: 14,

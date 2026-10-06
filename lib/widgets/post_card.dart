@@ -105,24 +105,19 @@ class PostCard extends StatelessWidget {
                           ],
                         ),
                       ),
-                      if (isOwner)
-                        PopupMenuButton<String>(
-                          onSelected: (value) async {
-                            if (value == 'edit') context.go('/edit/${post.id}');
-                            if (value == 'delete') {
-                              await context
-                                  .read<PostProvider>()
-                                  .deletePost(post);
-                            }
-                          },
-                          itemBuilder: (_) => const [
-                            PopupMenuItem(value: 'edit', child: Text('Edit')),
-                            PopupMenuItem(
-                              value: 'delete',
-                              child: Text('Delete'),
-                            ),
-                          ],
+                      if (isOwner) ...[
+                        IconButton(
+                          tooltip: 'Edit post',
+                          onPressed: () => context.go('/edit/${post.id}'),
+                          icon: const Icon(Icons.edit_outlined),
                         ),
+                        IconButton(
+                          tooltip: 'Delete post',
+                          onPressed: () => _deletePost(context),
+                          icon: const Icon(Icons.delete_outline),
+                          color: Colors.red,
+                        ),
+                      ],
                     ],
                   ),
                   const SizedBox(height: 14),
@@ -170,6 +165,31 @@ class PostCard extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  Future<void> _deletePost(BuildContext context) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Delete post?'),
+        content: const Text(
+          'This will remove the post, its comments, and its images.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(backgroundColor: Colors.red),
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !context.mounted) return;
+    await context.read<PostProvider>().deletePost(post);
   }
 }
 
