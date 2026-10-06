@@ -93,6 +93,11 @@ class SupabaseService {
     }
   }
 
+  static Future<void> deleteAccount() async {
+    await client.rpc('delete_my_account');
+    await client.auth.signOut();
+  }
+
   static String? _pathFromPublicUrl(String url) {
     const marker = '/object/public/$imageBucket/';
     final index = url.indexOf(marker);

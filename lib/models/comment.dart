@@ -8,6 +8,8 @@ class ForumComment {
     required this.createdAt,
     this.authorName,
     this.authorAvatarUrl,
+    this.reactionCount = 0,
+    this.reactedByMe = false,
   });
 
   final String id;
@@ -18,6 +20,8 @@ class ForumComment {
   final DateTime createdAt;
   final String? authorName;
   final String? authorAvatarUrl;
+  final int reactionCount;
+  final bool reactedByMe;
 
   factory ForumComment.fromMap(Map<String, dynamic> map) {
     final profile = map['profiles'];
@@ -31,6 +35,8 @@ class ForumComment {
       createdAt: DateTime.parse(map['created_at'] as String).toLocal(),
       authorName: profileMap['name'] as String?,
       authorAvatarUrl: profileMap['avatar_url'] as String?,
+      reactionCount: (map['reaction_count'] as num?)?.toInt() ?? 0,
+      reactedByMe: map['reacted_by_me'] == true,
     );
   }
 }

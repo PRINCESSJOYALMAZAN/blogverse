@@ -8,6 +8,8 @@ class Post {
     required this.createdAt,
     this.authorName,
     this.authorAvatarUrl,
+    this.reactionCounts = const {},
+    this.myReaction,
   });
 
   final String id;
@@ -18,6 +20,11 @@ class Post {
   final DateTime createdAt;
   final String? authorName;
   final String? authorAvatarUrl;
+  final Map<String, int> reactionCounts;
+  final String? myReaction;
+
+  int get totalReactions =>
+      reactionCounts.values.fold(0, (total, count) => total + count);
 
   factory Post.fromMap(Map<String, dynamic> map) {
     final profile = map['profiles'];
@@ -31,6 +38,13 @@ class Post {
       createdAt: DateTime.parse(map['created_at'] as String).toLocal(),
       authorName: profileMap['name'] as String?,
       authorAvatarUrl: profileMap['avatar_url'] as String?,
+      reactionCounts: Map<String, int>.from(
+        (map['reaction_counts'] as Map?)?.map(
+              (key, value) => MapEntry(key.toString(), (value as num).toInt()),
+            ) ??
+            const {},
+      ),
+      myReaction: map['my_reaction'] as String?,
     );
   }
 }

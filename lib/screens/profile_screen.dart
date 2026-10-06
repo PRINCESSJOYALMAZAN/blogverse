@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
@@ -169,6 +170,60 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
   }
 
+  Future<void> _deleteAccount() async {
+    final proceed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Delete account'),
+        content: const Text(
+          'Once you delete your account, your profile, posts, comments, and reactions will be permanently removed.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('Go back'),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(backgroundColor: _kRed),
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: const Text('Continue'),
+          ),
+        ],
+      ),
+    );
+    if (proceed != true || !mounted) return;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Are you sure you want to continue?'),
+        content: const Text('This action cannot be undone.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(backgroundColor: _kRed),
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: const Text('Confirm'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+    try {
+      await context.read<AuthStateProvider>().deleteAccount();
+      if (mounted) context.go('/login');
+    } catch (error) {
+      _showError(error);
+    }
+  }
+
+  Future<void> _signOut() async {
+    await context.read<AuthStateProvider>().logout();
+    if (mounted) context.go('/login');
+  }
+
   void _showError(Object error) {
     if (!mounted) return;
     final raw = error.toString();
@@ -182,6 +237,48 @@ class _ProfileScreenState extends State<ProfileScreen> {
         content: Text(message),
         backgroundColor: _kRed,
         behavior: SnackBarBehavior.floating,
+      ),
+    );
+  }
+
+  void _showAboutEditDialog() {
+    final profileProvider = context.read<ProfileProvider>();
+    showDialog<void>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Edit About Me'),
+        content: TextField(
+          controller: _name,
+          autofocus: true,
+          textCapitalization: TextCapitalization.words,
+          decoration: const InputDecoration(
+            labelText: 'Display name',
+            hintText: 'Enter your name',
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () async {
+              Navigator.of(dialogContext).pop();
+              try {
+                await profileProvider.updateName(_name.text);
+                if (mounted) {
+                  setState(() => _profile = profileProvider.profile);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('About Me updated')),
+                  );
+                }
+              } catch (error) {
+                _showError(error);
+              }
+            },
+            child: const Text('Save'),
+          ),
+        ],
       ),
     );
   }
@@ -239,8 +336,39 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   onChangePhoto: _pickAvatar,
                   onDeletePhoto: _deleteAvatar,
                   onSave: _saveName,
+                  onDeleteAccount: _deleteAccount,
+                  onSignOut: _signOut,
                 ),
                 const SizedBox(height: 14),
+                if (isOwnProfile)
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: OutlinedButton.icon(
+                      onPressed: _signOut,
+                      icon: const Icon(Icons.logout_rounded, size: 18),
+                      label: const Text('Sign out'),
+                    ),
+                  ),
+                if (isOwnProfile) ...[
+                  const SizedBox(height: 8),
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: OutlinedButton.icon(
+                      onPressed: _deleteAccount,
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: _kRed,
+                        side: const BorderSide(color: _kRed),
+                      ),
+                      icon: const Icon(Icons.person_remove_outlined, size: 18),
+                      label: const Text('Delete account'),
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+                ],
+                if (isOwnProfile && kIsWeb) ...[
+                  const _InstallAppCard(),
+                  const SizedBox(height: 14),
+                ],
                 const _ProfileTabs(),
                 const SizedBox(height: 14),
                 _UserPostsSection(postsFuture: _userPostsFuture),
@@ -268,6 +396,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                 displayName: displayName,
                                 postsFuture: _userPostsFuture,
                                 isOwnProfile: isOwnProfile,
+                                onEditAbout: isOwnProfile
+                                    ? _showAboutEditDialog
+                                    : null,
                               ),
                             ],
                           )
@@ -283,6 +414,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                   displayName: displayName,
                                   postsFuture: _userPostsFuture,
                                   isOwnProfile: isOwnProfile,
+                                  onEditAbout: isOwnProfile
+                                      ? _showAboutEditDialog
+                                      : null,
                                 ),
                               ),
                             ],
@@ -292,6 +426,44 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ],
             );
           },
+        ),
+      ),
+    );
+  }
+}
+
+class _InstallAppCard extends StatelessWidget {
+  const _InstallAppCard();
+
+  void _showInstallSteps(BuildContext context) {
+    showDialog<void>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Install BlogVerse safely'),
+        content: const Text(
+          'In Chrome on your phone, tap ⋮ then choose “Install app” or “Add to Home screen”. Only install this app from your trusted HTTPS website.',
+        ),
+        actions: [
+          FilledButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('Got it'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      color: const Color(0xFFEFF6FF),
+      child: ListTile(
+        leading: const Icon(Icons.verified_user_outlined, color: _kIndigo),
+        title: const Text('Install BlogVerse on your phone'),
+        subtitle: const Text('Safe install through Chrome HTTPS'),
+        trailing: TextButton(
+          onPressed: () => _showInstallSteps(context),
+          child: const Text('Install app'),
         ),
       ),
     );
@@ -360,12 +532,14 @@ class _ProfileSideRail extends StatelessWidget {
     required this.displayName,
     required this.postsFuture,
     required this.isOwnProfile,
+    this.onEditAbout,
   });
 
   final AppProfile? profile;
   final String displayName;
   final Future<List<Post>>? postsFuture;
   final bool isOwnProfile;
+  final VoidCallback? onEditAbout;
 
   @override
   Widget build(BuildContext context) {
@@ -376,7 +550,7 @@ class _ProfileSideRail extends StatelessWidget {
           icon: Icons.person_outline_rounded,
           action: isOwnProfile
               ? TextButton.icon(
-                  onPressed: () {},
+                  onPressed: onEditAbout,
                   icon: const Icon(Icons.edit_outlined, size: 14),
                   label: const Text('Edit'),
                 )
@@ -697,6 +871,8 @@ class _ProfileSummaryCard extends StatelessWidget {
     required this.onChangePhoto,
     required this.onDeletePhoto,
     required this.onSave,
+    required this.onDeleteAccount,
+    required this.onSignOut,
   });
 
   final bool compact;
@@ -712,6 +888,8 @@ class _ProfileSummaryCard extends StatelessWidget {
   final VoidCallback onChangePhoto;
   final VoidCallback onDeletePhoto;
   final VoidCallback onSave;
+  final VoidCallback onDeleteAccount;
+  final VoidCallback onSignOut;
 
   @override
   Widget build(BuildContext context) {
@@ -921,6 +1099,23 @@ class _ProfileSummaryCard extends StatelessWidget {
                 ],
               ),
               const SizedBox(height: 10),
+              Align(
+                alignment: Alignment.centerLeft,
+                child: TextButton.icon(
+                  onPressed: onDeleteAccount,
+                  style: TextButton.styleFrom(foregroundColor: _kRed),
+                  icon: const Icon(Icons.person_remove_outlined, size: 17),
+                  label: const Text('Delete account permanently'),
+                ),
+              ),
+              Align(
+                alignment: Alignment.centerLeft,
+                child: TextButton.icon(
+                  onPressed: onSignOut,
+                  icon: const Icon(Icons.logout_rounded, size: 17),
+                  label: const Text('Sign out'),
+                ),
+              ),
             ],
           ),
         ),

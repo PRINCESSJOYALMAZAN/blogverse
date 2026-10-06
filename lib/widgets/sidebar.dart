@@ -64,9 +64,20 @@ class Sidebar extends StatelessWidget {
                 children: [
                   const Padding(
                     padding: EdgeInsets.fromLTRB(4, 0, 4, 18),
-                    child: Align(
-                      alignment: Alignment.centerLeft,
-                      child: AppLogo(iconSize: 42),
+                    child: Row(
+                      children: [
+                        AppLogo(iconSize: 42),
+                        SizedBox(width: 10),
+                        Text(
+                          'BLOGVERSE',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 16,
+                            fontWeight: FontWeight.w900,
+                            letterSpacing: 1.1,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                   _SideItem(

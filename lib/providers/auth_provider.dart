@@ -117,6 +117,12 @@ class AuthStateProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  Future<void> deleteAccount() async {
+    await SupabaseService.deleteAccount();
+    user = null;
+    notifyListeners();
+  }
+
   @override
   void dispose() {
     _subscription?.cancel();

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
@@ -161,27 +162,152 @@ class PostCard extends StatelessWidget {
                     ),
                   ],
                   const SizedBox(height: 14),
-                  Row(
-                    children: [
-                      TextButton.icon(
-                        onPressed: () => context.go('/posts/${post.id}'),
-                        icon: const Icon(
-                          Icons.chat_bubble_outline_rounded,
-                          size: 16,
-                        ),
-                        label: const Text('Open discussion'),
-                      ),
-                      const Spacer(),
-                      TextButton(
-                        onPressed: () => context.go('/posts/${post.id}'),
-                        child: const Text('Read more'),
-                      ),
-                    ],
-                  ),
+                  PostInteractionBar(post: post),
                 ],
               ),
             ),
           ),
+        ),
+      ),
+    );
+  }
+}
+
+class PostInteractionBar extends StatelessWidget {
+  const PostInteractionBar({super.key, required this.post});
+
+  final Post post;
+
+  static const reactions = <String, (String, IconData, Color)>{
+    'like': ('Like', Icons.thumb_up_alt_rounded, Color(0xFF2563EB)),
+    'love': ('Love', Icons.favorite_rounded, Color(0xFFE11D48)),
+    'sad': ('Sad', Icons.sentiment_dissatisfied_rounded, Color(0xFFEAB308)),
+    'angry': ('Angry', Icons.mood_bad_rounded, Color(0xFFEA580C)),
+  };
+
+  Future<void> _share(BuildContext context) async {
+    final url = '${Uri.base.origin}/#/posts/${post.id}';
+    await Clipboard.setData(ClipboardData(text: url));
+    if (context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Post link copied.')),
+      );
+    }
+  }
+
+  Future<void> _chooseReaction(BuildContext context) async {
+    final selected = await showModalBottomSheet<String>(
+      context: context,
+      showDragHandle: true,
+      builder: (context) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(18, 4, 18, 24),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            children: [
+              for (final entry in reactions.entries)
+                _ReactionChoice(
+                  label: entry.value.$1,
+                  icon: entry.value.$2,
+                  color: entry.value.$3,
+                  selected: post.myReaction == entry.key,
+                  onTap: () => Navigator.pop(context, entry.key),
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
+    if (selected == null || !context.mounted) return;
+    await context.read<PostProvider>().togglePostReaction(post, selected);
+  }
+
+  Future<void> _react(BuildContext context) async {
+    if (!context.read<AuthStateProvider>().isLoggedIn) {
+      context.go('/login');
+      return;
+    }
+    await context.read<PostProvider>().togglePostReaction(
+          post,
+          post.myReaction ?? 'like',
+        );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final auth = context.watch<AuthStateProvider>();
+    final reaction = post.myReaction == null ? null : reactions[post.myReaction!];
+    return Row(
+      children: [
+        Expanded(
+          child: GestureDetector(
+            onLongPress: auth.isLoggedIn ? () => _chooseReaction(context) : null,
+            child: TextButton.icon(
+              onPressed: () => _react(context),
+              icon: Icon(
+                reaction?.$2 ?? Icons.thumb_up_alt_outlined,
+                size: 17,
+                color: reaction?.$3,
+              ),
+              label: Text(
+                post.totalReactions == 0
+                    ? 'React'
+                    : '${reaction?.$1 ?? 'React'} ${post.totalReactions}',
+              ),
+            ),
+          ),
+        ),
+        Expanded(
+          child: TextButton.icon(
+            onPressed: () => context.go('/posts/${post.id}'),
+            icon: const Icon(Icons.chat_bubble_outline_rounded, size: 17),
+            label: const Text('Comment'),
+          ),
+        ),
+        Expanded(
+          child: TextButton.icon(
+            onPressed: () => _share(context),
+            icon: const Icon(Icons.share_outlined, size: 17),
+            label: const Text('Share'),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _ReactionChoice extends StatelessWidget {
+  const _ReactionChoice({
+    required this.label,
+    required this.icon,
+    required this.color,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final String label;
+  final IconData icon;
+  final Color color;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(14),
+      child: Padding(
+        padding: const EdgeInsets.all(8),
+        child: Column(
+          children: [
+            CircleAvatar(
+              radius: 24,
+              backgroundColor: selected ? color : color.withValues(alpha: .12),
+              child: Icon(icon, color: selected ? Colors.white : color),
+            ),
+            const SizedBox(height: 6),
+            Text(label, style: const TextStyle(fontSize: 11)),
+          ],
         ),
       ),
     );

@@ -10,6 +10,7 @@ import '../providers/auth_provider.dart';
 import '../providers/post_provider.dart';
 import '../widgets/app_shell.dart';
 import '../widgets/image_picker_grid.dart';
+import '../widgets/post_card.dart';
 
 class PostDetailScreen extends StatefulWidget {
   const PostDetailScreen({super.key, required this.postId});
@@ -99,6 +100,12 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
                             IconButton(
                               tooltip: 'Delete post',
                               onPressed: () async {
+                                final confirmed = await _confirmAction(
+                                  context,
+                                  title: 'Delete post?',
+                                  message: 'This will also delete all comments on this post.',
+                                );
+                                if (!confirmed || !context.mounted) return;
                                 await provider.deletePost(post);
                                 if (context.mounted) context.go('/');
                               },
@@ -118,6 +125,8 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
                       Text(post.body),
                       const SizedBox(height: 16),
                       ImageStrip(urls: post.imageUrls, height: 230),
+                      const SizedBox(height: 12),
+                      PostInteractionBar(post: post),
                     ],
                   ),
                 ),
@@ -215,9 +224,18 @@ class _CommentTileState extends State<CommentTile> {
                         ),
                         IconButton(
                           tooltip: 'Delete comment',
-                          onPressed: () => context
-                              .read<PostProvider>()
-                              .deleteComment(widget.comment),
+                          onPressed: () async {
+                            final confirmed = await _confirmAction(
+                              context,
+                              title: 'Delete comment?',
+                              message: 'This comment and its images will be removed.',
+                            );
+                            if (confirmed && context.mounted) {
+                              await context
+                                  .read<PostProvider>()
+                                  .deleteComment(widget.comment);
+                            }
+                          },
                           icon: const Icon(Icons.delete_outline),
                         ),
                       ],
@@ -227,11 +245,56 @@ class _CommentTileState extends State<CommentTile> {
                   Text(widget.comment.body),
                   const SizedBox(height: 10),
                   ImageStrip(urls: widget.comment.imageUrls, height: 130),
+                  const SizedBox(height: 6),
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: TextButton.icon(
+                      onPressed: auth.isLoggedIn
+                          ? () => context
+                              .read<PostProvider>()
+                              .toggleCommentReaction(widget.comment)
+                          : null,
+                      icon: Icon(
+                        widget.comment.reactedByMe
+                            ? Icons.favorite
+                            : Icons.favorite_border,
+                        size: 18,
+                        color: widget.comment.reactedByMe ? Colors.pink : null,
+                      ),
+                      label: Text('${widget.comment.reactionCount} React'),
+                    ),
+                  ),
                 ],
               ),
       ),
     );
   }
+}
+
+Future<bool> _confirmAction(
+  BuildContext context, {
+  required String title,
+  required String message,
+}) async {
+  return await showDialog<bool>(
+        context: context,
+        builder: (dialogContext) => AlertDialog(
+          title: Text(title),
+          content: Text(message),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext, false),
+              child: const Text('Cancel'),
+            ),
+            FilledButton(
+              style: FilledButton.styleFrom(backgroundColor: Colors.red),
+              onPressed: () => Navigator.pop(dialogContext, true),
+              child: const Text('Delete'),
+            ),
+          ],
+        ),
+      ) ??
+      false;
 }
 
 class CommentEditor extends StatefulWidget {
