@@ -3,10 +3,12 @@ import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../models/post.dart';
 import '../providers/auth_provider.dart';
 import '../providers/post_provider.dart';
+import '../services/supabase_service.dart';
 import 'image_picker_grid.dart';
 
 class PostCard extends StatelessWidget {
@@ -207,11 +209,41 @@ class PostInteractionBar extends StatelessWidget {
 
   Future<void> _share(BuildContext context) async {
     final url = '${Uri.base.origin}/#/posts/${post.id}';
-    await Clipboard.setData(ClipboardData(text: url));
-    if (context.mounted) {
+    try {
+      await Clipboard.setData(ClipboardData(text: url));
+      await _recordShare();
+      if (!context.mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Post link copied.')),
+        const SnackBar(content: Text('Post link copied to clipboard.')),
       );
+    } catch (_) {
+      if (!context.mounted) return;
+      await showDialog<void>(
+        context: context,
+        builder: (dialogContext) => AlertDialog(
+          title: const Text('Share post'),
+          content: SelectableText(url),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext),
+              child: const Text('Close'),
+            ),
+          ],
+        ),
+      );
+    }
+  }
+
+  Future<void> _recordShare() async {
+    final userId = SupabaseService.client.auth.currentUser?.id;
+    if (userId == null) return;
+    try {
+      await SupabaseService.client.from('post_shares').insert({
+        'post_id': post.id,
+        'user_id': userId,
+      });
+    } on PostgrestException {
+      // Share link remains usable if the optional counter table is absent.
     }
   }
 

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../models/comment.dart';
 import '../models/post.dart';
@@ -117,12 +118,21 @@ class PostProvider extends ChangeNotifier {
   Future<void> togglePostReaction(Post post, String reaction) async {
     final userId = SupabaseService.client.auth.currentUser?.id;
     if (userId == null) return;
-    final existing = await SupabaseService.client
-        .from('post_reactions')
-        .select('reaction')
-        .eq('post_id', post.id)
-        .eq('user_id', userId)
-        .maybeSingle();
+    dynamic existing;
+    try {
+      existing = await SupabaseService.client
+          .from('post_reactions')
+          .select('reaction')
+          .eq('post_id', post.id)
+          .eq('user_id', userId)
+          .maybeSingle();
+    } on PostgrestException catch (exception) {
+      if (!_isMissingOptionalTable(exception)) rethrow;
+      error =
+          'Post reactions are not enabled yet. Run the latest supabase.sql migration.';
+      notifyListeners();
+      return;
+    }
     if (existing?['reaction'] == reaction) {
       await SupabaseService.client
           .from('post_reactions')
@@ -158,10 +168,17 @@ class PostProvider extends ChangeNotifier {
       final comments = await _attachProfiles(rows);
       final ids = comments.map((row) => row['id'] as String).toList();
       if (ids.isNotEmpty) {
-        final reactions = await SupabaseService.client
-            .from('comment_reactions')
-            .select('comment_id, user_id')
-            .inFilter('comment_id', ids);
+        // Reactions are an optional migration; comments should still work
+        // with only the core profiles/posts/comments tables.
+        List<dynamic> reactions = const [];
+        try {
+          reactions = await SupabaseService.client
+              .from('comment_reactions')
+              .select('comment_id, user_id')
+              .inFilter('comment_id', ids);
+        } on PostgrestException catch (exception) {
+          if (!_isMissingOptionalTable(exception)) rethrow;
+        }
         final counts = <String, int>{};
         final mine = <String>{};
         for (final reaction in reactions) {
@@ -231,25 +248,32 @@ class PostProvider extends ChangeNotifier {
   Future<void> toggleCommentReaction(ForumComment comment) async {
     final userId = SupabaseService.client.auth.currentUser?.id;
     if (userId == null) return;
-    final existing = await SupabaseService.client
-        .from('comment_reactions')
-        .select('comment_id')
-        .eq('comment_id', comment.id)
-        .eq('user_id', userId)
-        .maybeSingle();
-    if (existing == null) {
-      await SupabaseService.client.from('comment_reactions').insert({
-        'comment_id': comment.id,
-        'user_id': userId,
-      });
-    } else {
-      await SupabaseService.client
+    try {
+      final existing = await SupabaseService.client
           .from('comment_reactions')
-          .delete()
+          .select('comment_id')
           .eq('comment_id', comment.id)
-          .eq('user_id', userId);
+          .eq('user_id', userId)
+          .maybeSingle();
+      if (existing == null) {
+        await SupabaseService.client.from('comment_reactions').insert({
+          'comment_id': comment.id,
+          'user_id': userId,
+        });
+      } else {
+        await SupabaseService.client
+            .from('comment_reactions')
+            .delete()
+            .eq('comment_id', comment.id)
+            .eq('user_id', userId);
+      }
+      await loadComments(comment.postId);
+    } on PostgrestException catch (exception) {
+      if (!_isMissingOptionalTable(exception)) rethrow;
+      error =
+          'Comment reactions are not enabled yet. Run the latest supabase.sql migration.';
+      notifyListeners();
     }
-    await loadComments(comment.postId);
   }
 
   String _friendlyError(Object exception) {
@@ -262,6 +286,13 @@ class PostProvider extends ChangeNotifier {
       return 'Supabase permissions need to be updated. Run the latest app/supabase.sql in your Supabase SQL editor.';
     }
     return message.replaceFirst('Exception: ', '');
+  }
+
+  bool _isMissingOptionalTable(PostgrestException exception) {
+    final message = '${exception.code} ${exception.message}'.toLowerCase();
+    return message.contains('schema cache') ||
+        message.contains('does not exist') ||
+        (message.contains('relation') && message.contains('not found'));
   }
 
   Future<List<Map<String, dynamic>>> _attachProfiles(List<dynamic> rows) async {
@@ -298,10 +329,15 @@ class PostProvider extends ChangeNotifier {
   ) async {
     final ids = rows.map((row) => row['id'] as String).toList();
     if (ids.isEmpty) return rows;
-    final reactions = await SupabaseService.client
-        .from('post_reactions')
-        .select('post_id, user_id, reaction')
-        .inFilter('post_id', ids);
+    List<dynamic> reactions = const [];
+    try {
+      reactions = await SupabaseService.client
+          .from('post_reactions')
+          .select('post_id, user_id, reaction')
+          .inFilter('post_id', ids);
+    } on PostgrestException catch (exception) {
+      if (!_isMissingOptionalTable(exception)) rethrow;
+    }
     final counts = <String, Map<String, int>>{};
     final mine = <String, String>{};
     final currentUserId = SupabaseService.client.auth.currentUser?.id;

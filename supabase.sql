@@ -11,6 +11,14 @@ create table if not exists public.profiles (
 
 alter table public.profiles
   add column if not exists cover_url text;
+alter table public.profiles
+  add column if not exists bio text;
+alter table public.profiles
+  add column if not exists course text;
+alter table public.profiles
+  add column if not exists location text;
+alter table public.profiles
+  add column if not exists joined_year integer;
 
 create table if not exists public.posts (
   id uuid primary key default gen_random_uuid(),
@@ -43,6 +51,13 @@ create table if not exists public.post_reactions (
   reaction text not null check (reaction in ('like', 'love', 'sad', 'angry')),
   created_at timestamptz not null default now(),
   primary key (post_id, user_id)
+);
+
+create table if not exists public.post_shares (
+  id uuid primary key default gen_random_uuid(),
+  post_id uuid not null references public.posts(id) on delete cascade,
+  user_id uuid not null references auth.users(id) on delete cascade,
+  created_at timestamptz not null default now()
 );
 
 create or replace function public.delete_my_account()
@@ -118,6 +133,7 @@ alter table public.posts enable row level security;
 alter table public.comments enable row level security;
 alter table public.comment_reactions enable row level security;
 alter table public.post_reactions enable row level security;
+alter table public.post_shares enable row level security;
 alter table public.follows enable row level security;
 
 drop policy if exists "Profiles are public readable" on public.profiles;
@@ -156,6 +172,15 @@ drop policy if exists "Post owners can delete posts" on public.posts;
 create policy "Post owners can delete posts"
 on public.posts for delete
 using (auth.uid() = user_id);
+
+drop policy if exists "Post shares are public readable" on public.post_shares;
+create policy "Post shares are public readable"
+on public.post_shares for select using (true);
+
+drop policy if exists "Users can record post shares" on public.post_shares;
+create policy "Users can record post shares"
+on public.post_shares for insert
+with check (auth.uid() = user_id);
 
 drop policy if exists "Comments are public readable" on public.comments;
 create policy "Comments are public readable"

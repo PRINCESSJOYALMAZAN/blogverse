@@ -14,7 +14,7 @@ import '../widgets/app_shell.dart';
 
 // This screen intentionally uses a few inline responsive widgets for the
 // compact profile dashboard layout.
-// ignore_for_file: prefer_const_constructors
+// ignore_for_file: prefer_const_constructors, unused_element, unused_element_parameter
 
 // Shared BlogVerse brand purple used by Home, Write, Profile, and navigation.
 const _kIndigo = Color(0xFF5B4DF7);
@@ -39,9 +39,15 @@ class ProfileScreen extends StatefulWidget {
 
 class _ProfileScreenState extends State<ProfileScreen> {
   final _name = TextEditingController();
+  final _bio = TextEditingController();
+  final _course = TextEditingController();
+  final _location = TextEditingController();
+  final _joinedYear = TextEditingController();
+  final _scrollController = ScrollController();
   final _picker = ImagePicker();
   AppProfile? _profile;
   Future<List<Post>>? _userPostsFuture;
+  Future<Map<String, int>>? _statsFuture;
   bool _saving = false;
   bool _avatarBusy = false;
 
@@ -68,10 +74,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
     if (!mounted) return;
 
     _name.text = loadedProfile?.name ?? '';
+    _bio.text = loadedProfile?.bio ?? '';
+    _course.text = loadedProfile?.course ?? 'IT Student';
+    _location.text = loadedProfile?.location ?? 'Philippines';
+    _joinedYear.text = '${loadedProfile?.joinedYear ?? 2025}';
     setState(() {
       _profile = loadedProfile;
       if (viewedUserId != null) {
         _userPostsFuture = postProvider.getPostsByUser(viewedUserId);
+        _statsFuture = profileProvider.getStats(viewedUserId);
       }
     });
   }
@@ -86,6 +97,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       _profile = profileProvider.profile;
       if (userId != null) {
         _userPostsFuture = postProvider.getPostsByUser(userId);
+        _statsFuture = profileProvider.getStats(userId);
       }
     });
   }
@@ -252,13 +264,39 @@ class _ProfileScreenState extends State<ProfileScreen> {
       context: context,
       builder: (dialogContext) => AlertDialog(
         title: const Text('Edit About Me'),
-        content: TextField(
-          controller: _name,
-          autofocus: true,
-          textCapitalization: TextCapitalization.words,
-          decoration: const InputDecoration(
-            labelText: 'Display name',
-            hintText: 'Enter your name',
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: _name,
+                autofocus: true,
+                textCapitalization: TextCapitalization.words,
+                decoration: const InputDecoration(labelText: 'Display name'),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: _bio,
+                maxLines: 3,
+                decoration: const InputDecoration(labelText: 'About me'),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: _course,
+                decoration: const InputDecoration(labelText: 'Course / occupation'),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: _location,
+                decoration: const InputDecoration(labelText: 'Location'),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: _joinedYear,
+                keyboardType: TextInputType.number,
+                decoration: const InputDecoration(labelText: 'Joined year'),
+              ),
+            ],
           ),
         ),
         actions: [
@@ -270,7 +308,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
             onPressed: () async {
               Navigator.of(dialogContext).pop();
               try {
-                await profileProvider.updateName(_name.text);
+                final joinedYear = int.tryParse(_joinedYear.text.trim());
+                if (joinedYear == null || joinedYear < 1900 || joinedYear > 2100) {
+                  throw const FormatException('Enter a valid joined year.');
+                }
+                await profileProvider.updateAbout(
+                  name: _name.text,
+                  bio: _bio.text,
+                  course: _course.text,
+                  location: _location.text,
+                  joinedYear: joinedYear,
+                );
                 if (mounted) {
                   setState(() => _profile = profileProvider.profile);
                   ScaffoldMessenger.of(context).showSnackBar(
@@ -291,6 +339,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   @override
   void dispose() {
     _name.dispose();
+    _scrollController.dispose();
     super.dispose();
   }
 
@@ -314,6 +363,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       child: Container(
         color: const Color(0xFFF8FAFC),
         child: ListView(
+          controller: _scrollController,
           padding: EdgeInsets.fromLTRB(compact ? 14 : 28, 0, compact ? 14 : 28, 40),
           children: [
             _ModernTopBar(
@@ -323,47 +373,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
             Center(
               child: ConstrainedBox(
                 constraints: const BoxConstraints(maxWidth: 1180),
-                child: Column(
-                  children: [
-                    _ModernProfileBanner(
-                      displayName: displayName,
-                      email: email,
-                      avatarUrl: profile?.avatarUrl,
-                    ),
-                    const SizedBox(height: 12),
-                    if (compact)
-                      _ModernMobileProfileMenu(
-                        onProfile: () {},
-                        onLogout: isOwnProfile ? _signOut : null,
-                      )
-                    else
-                      Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          SizedBox(
-                            width: 180,
-                            child: _ModernProfileMenu(
-                              onProfile: () {},
-                              onLogout: isOwnProfile ? _signOut : null,
-                            ),
-                          ),
-                          const SizedBox(width: 14),
-                          Expanded(
-                            child: _ModernProfileContent(
-                              displayName: displayName,
-                              email: email,
-                              profile: profile,
-                              postsFuture: _userPostsFuture,
-                              canEdit: isOwnProfile,
-                              onEdit: _showAboutEditDialog,
-                              onDelete: _deleteAccount,
-                            ),
-                          ),
-                        ],
-                      ),
-                    if (compact) ...[
-                      const SizedBox(height: 12),
-                      _ModernProfileContent(
+                child: compact
+                    ? _ModernProfileContent(
                         displayName: displayName,
                         email: email,
                         profile: profile,
@@ -371,10 +382,59 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         canEdit: isOwnProfile,
                         onEdit: _showAboutEditDialog,
                         onDelete: _deleteAccount,
+                        onSignOut: isOwnProfile ? _signOut : null,
+                      )
+                    : Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Expanded(
+                            child: Column(
+                              children: [
+                                _ProfileCover(displayName: displayName, email: email),
+                                const SizedBox(height: 14),
+                                _ProfileIdentity(
+                                  displayName: displayName,
+                                  profile: profile,
+                                  postsFuture: _userPostsFuture,
+                                  onEdit: _showAboutEditDialog,
+                                  onChangeAvatar: isOwnProfile ? _pickAvatar : null,
+                                ),
+                                const SizedBox(height: 14),
+                                _ProfilePosts(postsFuture: _userPostsFuture),
+                                if (isOwnProfile) ...[
+                                  const SizedBox(height: 14),
+                                  OutlinedButton.icon(
+                                    onPressed: _deleteAccount,
+                                    icon: const Icon(Icons.delete_forever_outlined, size: 16),
+                                    label: const Text('Delete Account'),
+                                    style: OutlinedButton.styleFrom(foregroundColor: _kRed),
+                                  ),
+                                  TextButton.icon(
+                                    onPressed: _signOut,
+                                    icon: const Icon(Icons.logout_rounded, size: 16),
+                                    label: const Text('Sign out'),
+                                  ),
+                                ],
+                              ],
+                            ),
+                          ),
+                          const SizedBox(width: 18),
+                          SizedBox(
+                            width: 300,
+                            child: Column(
+                              children: [
+                                _ProfileAboutCard(profile: profile, displayName: displayName),
+                                const SizedBox(height: 14),
+                                _ProfileSkillsCard(),
+                                const SizedBox(height: 14),
+                                _ProfileStats(statsFuture: _statsFuture),
+                                const SizedBox(height: 14),
+                                _ProfileGallery(postsFuture: _userPostsFuture),
+                              ],
+                            ),
+                          ),
+                        ],
                       ),
-                    ],
-                  ],
-                ),
               ),
             ),
           ],
@@ -383,8 +443,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  // Kept as a fallback reference while the modern profile layout is active.
-  // ignore: unused_element
   Widget _legacyBuild(BuildContext context) {
     final auth = context.watch<AuthStateProvider>();
     final profile = _profile;
@@ -550,23 +608,6 @@ class _ModernTopBar extends StatelessWidget {
               ),
             ),
           ),
-          SizedBox(
-            width: 280,
-            child: TextField(
-              decoration: InputDecoration(
-                hintText: 'Search posts, users, or topics...',
-                prefixIcon: const Icon(Icons.search_rounded, size: 18),
-                filled: true,
-                fillColor: Colors.white,
-                isDense: true,
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(10),
-                  borderSide: const BorderSide(color: _kSlate200),
-                ),
-              ),
-            ),
-          ),
-          const SizedBox(width: 12),
           GestureDetector(
             onTap: () => context.go('/profile'),
             child: CircleAvatar(
@@ -583,16 +624,222 @@ class _ModernTopBar extends StatelessWidget {
   }
 }
 
+class _ProfileCover extends StatelessWidget {
+  const _ProfileCover({required this.displayName, required this.email});
+  final String displayName;
+  final String email;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: 190,
+      width: double.infinity,
+      padding: const EdgeInsets.all(24),
+      alignment: Alignment.bottomLeft,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(12),
+        gradient: const LinearGradient(
+          colors: [Color(0xFF2563EB), Color(0xFF7C3AED)],
+        ),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(displayName, style: const TextStyle(color: Colors.white, fontSize: 28, fontWeight: FontWeight.w900)),
+          Text(email, style: TextStyle(color: Colors.white.withValues(alpha: .88), fontWeight: FontWeight.w700)),
+        ],
+      ),
+    );
+  }
+}
+
+class _ProfileIdentity extends StatelessWidget {
+  const _ProfileIdentity({required this.displayName, required this.profile, required this.postsFuture, required this.onEdit, this.onChangeAvatar});
+  final String displayName;
+  final AppProfile? profile;
+  final Future<List<Post>>? postsFuture;
+  final VoidCallback onEdit;
+  final VoidCallback? onChangeAvatar;
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      margin: EdgeInsets.zero,
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Row(
+          children: [
+            Stack(
+              clipBehavior: Clip.none,
+              children: [
+                CircleAvatar(
+                  radius: 42,
+                  backgroundColor: _kIndigo,
+                  backgroundImage: profile?.avatarUrl == null ? null : NetworkImage(profile!.avatarUrl!),
+                  child: profile?.avatarUrl == null ? Text(displayName.characters.first.toUpperCase(), style: const TextStyle(color: Colors.white, fontSize: 28)) : null,
+                ),
+                if (onChangeAvatar != null)
+                  Positioned(
+                    right: -2,
+                    bottom: 0,
+                    child: IconButton.filled(
+                      onPressed: onChangeAvatar,
+                      icon: const Icon(Icons.camera_alt_outlined, size: 15),
+                      style: IconButton.styleFrom(backgroundColor: _kInk, foregroundColor: Colors.white),
+                    ),
+                  ),
+              ],
+            ),
+            const SizedBox(width: 18),
+            Expanded(
+              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Row(children: [Expanded(child: Text(displayName, style: const TextStyle(fontSize: 25, fontWeight: FontWeight.w900, color: _kInk))), OutlinedButton.icon(onPressed: onEdit, icon: const Icon(Icons.edit_outlined, size: 15), label: const Text('Edit Profile'))]),
+                Text('@${displayName.toLowerCase().replaceAll(' ', '')}', style: const TextStyle(color: _kSlate500, fontWeight: FontWeight.w700)),
+                const SizedBox(height: 14),
+                Wrap(spacing: 8, runSpacing: 8, children: [
+                  _MiniPill(icon: Icons.location_on_outlined, text: profile?.location ?? 'Philippines'),
+                  _MiniPill(icon: Icons.school_outlined, text: profile?.course ?? 'IT Student'),
+                  _MiniPill(icon: Icons.calendar_today_outlined, text: 'Joined ${profile?.joinedYear ?? 2025}'),
+                ]),
+                const SizedBox(height: 12),
+                FutureBuilder<List<Post>>(future: postsFuture, builder: (context, snapshot) => Text('${snapshot.data?.length ?? 0}\nPosts', textAlign: TextAlign.center, style: const TextStyle(color: _kInk, fontWeight: FontWeight.w800))),
+              ]),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _MiniPill extends StatelessWidget {
+  const _MiniPill({required this.icon, required this.text});
+  final IconData icon;
+  final String text;
+  @override
+  Widget build(BuildContext context) => Chip(avatar: Icon(icon, size: 14), label: Text(text));
+}
+
+class _ProfileAboutCard extends StatelessWidget {
+  const _ProfileAboutCard({required this.profile, required this.displayName});
+  final AppProfile? profile;
+  final String displayName;
+  @override
+  Widget build(BuildContext context) => _ModernSection(
+    title: 'About Me',
+    child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      Text(profile?.bio?.trim().isNotEmpty == true ? profile!.bio! : 'Hi! I am $displayName.', style: const TextStyle(color: _kSlate700, height: 1.45)),
+      const SizedBox(height: 12),
+      _AboutLine(icon: Icons.code_rounded, label: profile?.course ?? 'IT Student'),
+      _AboutLine(icon: Icons.email_outlined, label: profile?.email ?? ''),
+      _AboutLine(icon: Icons.location_on_outlined, label: profile?.location ?? 'Philippines'),
+    ]),
+  );
+}
+
+class _ProfileSkillsCard extends StatelessWidget {
+  const _ProfileSkillsCard();
+  @override
+  Widget build(BuildContext context) => const _ModernSection(
+    title: 'Skills & Interests',
+    child: Wrap(spacing: 6, runSpacing: 6, children: [_SkillPill('Flutter'), _SkillPill('Dart'), _SkillPill('Supabase'), _SkillPill('UI/UX'), _SkillPill('Database'), _SkillPill('Coding')]),
+  );
+}
+
+class _ProfilePosts extends StatelessWidget {
+  const _ProfilePosts({required this.postsFuture});
+  final Future<List<Post>>? postsFuture;
+  @override
+  Widget build(BuildContext context) => _ModernSection(
+    title: 'Your Posts',
+    child: FutureBuilder<List<Post>>(future: postsFuture, builder: (context, snapshot) {
+      final posts = snapshot.data ?? const <Post>[];
+      return posts.isEmpty ? const Text('No posts yet.', style: TextStyle(color: _kSlate500)) : Column(children: [for (final post in posts) _ModernPostRow(post: post)]);
+    }),
+  );
+}
+
+class _ProfileGallery extends StatelessWidget {
+  const _ProfileGallery({required this.postsFuture});
+  final Future<List<Post>>? postsFuture;
+  @override
+  Widget build(BuildContext context) => _ModernSection(
+    title: 'Gallery',
+    child: FutureBuilder<List<Post>>(future: postsFuture, builder: (context, snapshot) {
+      final urls = <String>[];
+      for (final post in snapshot.data ?? const <Post>[]) {
+        urls.addAll(post.imageUrls);
+      }
+      final visibleUrls = urls.take(4).toList();
+      return visibleUrls.isEmpty ? const Text('No images yet.', style: TextStyle(color: _kSlate500)) : Wrap(spacing: 6, runSpacing: 6, children: [for (final url in visibleUrls) ClipRRect(borderRadius: BorderRadius.circular(6), child: Image.network(url, width: 58, height: 58, fit: BoxFit.cover))]);
+    }),
+  );
+}
+
+class _ProfileStats extends StatelessWidget {
+  const _ProfileStats({required this.statsFuture});
+
+  final Future<Map<String, int>>? statsFuture;
+
+  @override
+  Widget build(BuildContext context) {
+    return FutureBuilder<Map<String, int>>(
+      future: statsFuture,
+      builder: (context, snapshot) {
+        final stats = snapshot.data ?? const <String, int>{};
+        return Card(
+          margin: EdgeInsets.zero,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 8),
+            child: Row(
+              children: [
+                _StatItem(label: 'Posts', value: stats['posts'] ?? 0, icon: Icons.article_outlined),
+                _StatItem(label: 'Likes', value: stats['likes'] ?? 0, icon: Icons.favorite_border),
+                _StatItem(label: 'Shares', value: stats['shares'] ?? 0, icon: Icons.share_outlined),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _StatItem extends StatelessWidget {
+  const _StatItem({required this.label, required this.value, required this.icon});
+
+  final String label;
+  final int value;
+  final IconData icon;
+
+  @override
+  Widget build(BuildContext context) {
+    return Expanded(
+      child: Column(
+        children: [
+          Icon(icon, size: 19, color: _kIndigo),
+          const SizedBox(height: 4),
+          Text('$value', style: const TextStyle(color: _kInk, fontSize: 18, fontWeight: FontWeight.w900)),
+          Text(label, style: const TextStyle(color: _kSlate500, fontSize: 11, fontWeight: FontWeight.w700)),
+        ],
+      ),
+    );
+  }
+}
+
 class _ModernProfileBanner extends StatelessWidget {
   const _ModernProfileBanner({
     required this.displayName,
     required this.email,
     this.avatarUrl,
+    this.onChangeAvatar,
   });
 
   final String displayName;
   final String email;
   final String? avatarUrl;
+  final VoidCallback? onChangeAvatar;
 
   @override
   Widget build(BuildContext context) {
@@ -609,21 +856,43 @@ class _ModernProfileBanner extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.end,
         children: [
-          GestureDetector(
-            onTap: avatarUrl == null
-                ? null
-                : () => _showImagePreview(context, avatarUrl!, 'Profile photo'),
-            child: CircleAvatar(
-              radius: 34,
-              backgroundColor: _kIndigo,
-              backgroundImage: avatarUrl == null ? null : NetworkImage(avatarUrl!),
-              child: avatarUrl == null
-                  ? Text(
-                      displayName.characters.first.toUpperCase(),
-                      style: const TextStyle(color: Colors.white, fontSize: 25),
-                    )
-                  : null,
-            ),
+          Stack(
+            clipBehavior: Clip.none,
+            children: [
+              GestureDetector(
+                onTap: avatarUrl == null
+                    ? onChangeAvatar
+                    : () => _showImagePreview(context, avatarUrl!, 'Profile photo'),
+                child: CircleAvatar(
+                  radius: 34,
+                  backgroundColor: _kIndigo,
+                  backgroundImage: avatarUrl == null ? null : NetworkImage(avatarUrl!),
+                  child: avatarUrl == null
+                      ? Text(
+                          displayName.characters.first.toUpperCase(),
+                          style: const TextStyle(color: Colors.white, fontSize: 25),
+                        )
+                      : null,
+                ),
+              ),
+              if (onChangeAvatar != null)
+                Positioned(
+                  right: -4,
+                  bottom: -2,
+                  child: Material(
+                    color: _kIndigo,
+                    shape: const CircleBorder(),
+                    child: InkWell(
+                      onTap: onChangeAvatar,
+                      customBorder: const CircleBorder(),
+                      child: const Padding(
+                        padding: EdgeInsets.all(7),
+                        child: Icon(Icons.camera_alt_outlined, size: 15, color: Colors.white),
+                      ),
+                    ),
+                  ),
+                ),
+            ],
           ),
           const SizedBox(width: 14),
           Expanded(
@@ -644,73 +913,6 @@ class _ModernProfileBanner extends StatelessWidget {
   }
 }
 
-class _ModernProfileMenu extends StatelessWidget {
-  const _ModernProfileMenu({required this.onProfile, this.onLogout});
-
-  final VoidCallback onProfile;
-  final VoidCallback? onLogout;
-
-  @override
-  Widget build(BuildContext context) {
-    return Card(
-      margin: EdgeInsets.zero,
-      child: Column(
-        children: [
-          _ModernMenuItem(icon: Icons.person_outline, label: 'Profile', selected: true, onTap: onProfile),
-          const _ModernMenuItem(icon: Icons.article_outlined, label: 'Posts'),
-          const _ModernMenuItem(icon: Icons.bookmark_border, label: 'Saved'),
-          const _ModernMenuItem(icon: Icons.settings_outlined, label: 'Settings'),
-          if (onLogout != null) ...[
-            const Divider(height: 12),
-            _ModernMenuItem(icon: Icons.logout_rounded, label: 'Sign out', onTap: onLogout),
-          ],
-        ],
-      ),
-    );
-  }
-}
-
-class _ModernMobileProfileMenu extends StatelessWidget {
-  const _ModernMobileProfileMenu({required this.onProfile, this.onLogout});
-
-  final VoidCallback onProfile;
-  final VoidCallback? onLogout;
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Expanded(child: OutlinedButton.icon(onPressed: onProfile, icon: const Icon(Icons.person_outline), label: const Text('Profile'))),
-        if (onLogout != null) ...[
-          const SizedBox(width: 8),
-          Expanded(child: OutlinedButton.icon(onPressed: onLogout, icon: const Icon(Icons.logout_rounded), label: const Text('Sign out'))),
-        ],
-      ],
-    );
-  }
-}
-
-class _ModernMenuItem extends StatelessWidget {
-  const _ModernMenuItem({required this.icon, required this.label, this.selected = false, this.onTap});
-
-  final IconData icon;
-  final String label;
-  final bool selected;
-  final VoidCallback? onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return ListTile(
-      dense: true,
-      selected: selected,
-      selectedTileColor: const Color(0xFFEFF0FF),
-      leading: Icon(icon, size: 17, color: selected ? _kIndigo : _kSlate500),
-      title: Text(label, style: TextStyle(color: selected ? _kIndigo : _kSlate700, fontSize: 12, fontWeight: FontWeight.w800)),
-      onTap: onTap,
-    );
-  }
-}
-
 class _ModernProfileContent extends StatelessWidget {
   const _ModernProfileContent({
     required this.displayName,
@@ -720,6 +922,7 @@ class _ModernProfileContent extends StatelessWidget {
     required this.canEdit,
     required this.onEdit,
     required this.onDelete,
+    this.onSignOut,
   });
 
   final String displayName;
@@ -729,6 +932,7 @@ class _ModernProfileContent extends StatelessWidget {
   final bool canEdit;
   final VoidCallback onEdit;
   final VoidCallback onDelete;
+  final VoidCallback? onSignOut;
 
   @override
   Widget build(BuildContext context) {
@@ -747,13 +951,35 @@ class _ModernProfileContent extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('Hi! I am $displayName, an IT student who loves coding, building systems, and exploring new technologies.', style: const TextStyle(color: _kSlate700, fontSize: 12, height: 1.45)),
+              Text(
+                profile?.bio?.trim().isNotEmpty == true
+                    ? profile!.bio!.trim()
+                    : 'Hi! I am $displayName, an IT student who loves coding, building systems, and exploring new technologies.',
+                style: const TextStyle(color: _kSlate700, fontSize: 12, height: 1.45),
+              ),
               const SizedBox(height: 12),
-              Wrap(spacing: 14, runSpacing: 8, children: const [
-                _AboutLine(icon: Icons.code_rounded, label: 'BS Information Systems'),
-                _AboutLine(icon: Icons.location_on_outlined, label: 'Philippines'),
-                _AboutLine(icon: Icons.calendar_today_outlined, label: 'Joined 2025'),
-              ]),
+              Wrap(
+                spacing: 14,
+                runSpacing: 8,
+                children: [
+                  _AboutLine(
+                    icon: Icons.code_rounded,
+                    label: profile?.course?.trim().isNotEmpty == true
+                        ? profile!.course!.trim()
+                        : 'IT Student',
+                  ),
+                  _AboutLine(
+                    icon: Icons.location_on_outlined,
+                    label: profile?.location?.trim().isNotEmpty == true
+                        ? profile!.location!.trim()
+                        : 'Philippines',
+                  ),
+                  _AboutLine(
+                    icon: Icons.calendar_today_outlined,
+                    label: 'Joined ${profile?.joinedYear ?? 2025}',
+                  ),
+                ],
+              ),
             ],
           ),
         ),
@@ -788,6 +1014,17 @@ class _ModernProfileContent extends StatelessWidget {
               label: const Text('Delete Account'),
             ),
           ),
+          if (onSignOut != null) ...[
+            const SizedBox(height: 10),
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                onPressed: onSignOut,
+                icon: const Icon(Icons.logout_rounded, size: 16),
+                label: const Text('Sign out'),
+              ),
+            ),
+          ],
         ],
       ],
     );
