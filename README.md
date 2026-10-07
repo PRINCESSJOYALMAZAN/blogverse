@@ -8,7 +8,7 @@
 
 Replace this link with the Vercel URL after deployment:
 
-[https://your-blogverse.vercel.app/](https://your-blogverse.vercel.app/)
+[https://your-blogverse.vercel.app/](https://your-blogverse-live.vercel.app/)
 
 ## Concept
 
